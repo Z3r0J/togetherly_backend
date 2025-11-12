@@ -1,0 +1,39 @@
+# IDE & Editors
+.idea/
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+*-lock.json
+
+# Build output
+build/
+dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Logs
+logs/
+*.log
+
+# Testing
+coverage/
+.nyc_output/
+.vitest/
+
+# OS
+.DS_Store
+Thumbs.db
