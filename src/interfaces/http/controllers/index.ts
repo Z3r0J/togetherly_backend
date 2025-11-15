@@ -1,1 +1,1 @@
-export * from "./test.controller.js";
+export * from "./account.controller.js";

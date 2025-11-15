@@ -3,10 +3,10 @@ import cors from "cors";
 import { DataSource } from "typeorm";
 import { ILogger } from "@domain/ports/logger.port.js";
 import { Env } from "@app/schemas/env.schema.js";
-import { createTestRoutes } from "./http/routes/test.routes.js";
 import { createApiKeyMiddleware } from "./http/middlewares/auth.middleware.js";
 import { createErrorHandler } from "./http/middlewares/error.middleware.js";
 import { DIContainer } from "./di/container.js";
+import { createAccountRoutes } from "./http/routes/index.js";
 
 /**
  * Application configuration and dependency injection
@@ -43,14 +43,14 @@ export class App {
     DIContainer.initialize(this.dataSource, this.logger);
 
     // Get controller from container
-    const testController = DIContainer.getTestController();
+    const accountController = DIContainer.getAccountController();
 
     // Register routes
     const apiKeyMiddleware = createApiKeyMiddleware(this.env);
     this.app.use(
-      "/api/tests",
+      "/api/auth",
       apiKeyMiddleware,
-      createTestRoutes(testController)
+      createAccountRoutes(accountController)
     );
   }
 

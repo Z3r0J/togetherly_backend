@@ -2,6 +2,20 @@ import { z } from "zod";
 import { emailSchema, toDate } from "../helper.schema";
 
 /**
+ * Schema for login an user using email and password
+ * @author Jean Carlos Reyes
+ * @version 1.0.0
+ * @description This schema defines the structure and validation rules for logging in a user using email and password.
+ */
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters long")
+    .max(128, "Password must be at most 128 characters long"),
+});
+
+/**
  * Schema for creating a new user
  * @author Jean Carlos Reyes
  * @version 1.0.0
@@ -11,6 +25,10 @@ import { emailSchema, toDate } from "../helper.schema";
 export const createUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(255),
   email: emailSchema,
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters long")
+    .max(128, "Password must be at most 128 characters long"),
   isEmailVerified: z.boolean().optional(),
   emailVerifiedAt: toDate.nullish(), // allow undefined or null
 });

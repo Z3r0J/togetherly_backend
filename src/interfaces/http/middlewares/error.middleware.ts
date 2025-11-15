@@ -9,7 +9,7 @@ export const createErrorHandler = (logger: ILogger) => {
     err: Error,
     req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
   ): void => {
     logger.error("Unhandled error in request", err, {
       method: req.method,

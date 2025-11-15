@@ -1,0 +1,236 @@
+import nodemailer, { Transporter } from "nodemailer";
+import { IMailerService, EmailOptions } from "@domain/ports/mailer.port.js";
+import { ILogger } from "@domain/ports/logger.port.js";
+
+export type MailerConfig = {
+  host: string;
+  port: number;
+  secure: boolean; // true for 465, false for other ports
+  auth?: {
+    user: string;
+    pass: string;
+  };
+  from: string; // Default from address
+  appUrl: string; // Base URL for your application (for verification links)
+};
+
+/**
+ * Nodemailer implementation of the Mailer Service
+ * Handles sending various types of emails
+ */
+export class NodemailerService implements IMailerService {
+  private transporter: Transporter;
+
+  constructor(private config: MailerConfig, private logger: ILogger) {
+    this.transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: config.auth,
+    });
+  }
+
+  /**
+   * Send a generic email
+   * @param options - Email options (to, subject, text, html)
+   * @returns Promise that resolves when email is sent
+   */
+  async send(options: EmailOptions): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: this.config.from,
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html,
+      });
+
+      this.logger.info(`Email sent successfully to ${options.to}`, {
+        subject: options.subject,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send email to ${options.to}`,
+        error as Error,
+        {
+          subject: options.subject,
+        }
+      );
+      throw new Error(`Failed to send email: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Send an email verification message
+   * @param userId - The user ID
+   * @param email - The recipient email address
+   * @param token - The verification token
+   * @returns Promise that resolves when email is sent
+   */
+  async sendVerifyEmail(
+    _userId: string,
+    email: string,
+    token: string
+  ): Promise<void> {
+    const verificationUrl = `${this.config.appUrl}/verify-email?token=${token}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Verify Your Email</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #4a90e2;">Welcome to Togetherly!</h1>
+            <p>Thank you for signing up. Please verify your email address to activate your account.</p>
+            <div style="margin: 30px 0;">
+              <a href="${verificationUrl}" 
+                 style="background-color: #4a90e2; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block;">
+                Verify Email Address
+              </a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+            <p style="margin-top: 30px; color: #999; font-size: 12px;">
+              If you didn't create an account with Togetherly, please ignore this email.
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+Welcome to Togetherly!
+
+Thank you for signing up. Please verify your email address to activate your account.
+
+Verification link: ${verificationUrl}
+
+If you didn't create an account with Togetherly, please ignore this email.
+    `;
+
+    await this.send({
+      to: email,
+      subject: "Verify Your Email - Togetherly",
+      text,
+      html,
+    });
+  }
+
+  /**
+   * Send a password reset email
+   * @param email - The recipient email address
+   * @param token - The password reset token
+   * @returns Promise that resolves when email is sent
+   */
+  async sendPasswordResetEmail(email: string, token: string): Promise<void> {
+    const resetUrl = `${this.config.appUrl}/reset-password?token=${token}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Reset Your Password</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #4a90e2;">Reset Your Password</h1>
+            <p>You requested to reset your password. Click the button below to create a new password.</p>
+            <div style="margin: 30px 0;">
+              <a href="${resetUrl}" 
+                 style="background-color: #4a90e2; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block;">
+                Reset Password
+              </a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+            <p style="margin-top: 30px; color: #999; font-size: 12px;">
+              If you didn't request a password reset, please ignore this email or contact support if you have concerns.
+              This link will expire in 24 hours.
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+Reset Your Password
+
+You requested to reset your password. Click the link below to create a new password.
+
+Reset link: ${resetUrl}
+
+If you didn't request a password reset, please ignore this email.
+This link will expire in 24 hours.
+    `;
+
+    await this.send({
+      to: email,
+      subject: "Reset Your Password - Togetherly",
+      text,
+      html,
+    });
+  }
+
+  /**
+   * Send a welcome email
+   * @param name - The user's name
+   * @param email - The recipient email address
+   * @returns Promise that resolves when email is sent
+   */
+  async sendWelcomeEmail(name: string, email: string): Promise<void> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Welcome to Togetherly</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #4a90e2;">Welcome to Togetherly, ${name}!</h1>
+            <p>Your account has been successfully verified and is now active.</p>
+            <p>You can now start using all the features of Togetherly.</p>
+            <div style="margin: 30px 0;">
+              <a href="${this.config.appUrl}" 
+                 style="background-color: #4a90e2; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block;">
+                Get Started
+              </a>
+            </div>
+            <p>If you have any questions, feel free to reach out to our support team.</p>
+            <p style="margin-top: 30px; color: #999; font-size: 12px;">
+              The Togetherly Team ❤️
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+Welcome to Togetherly, ${name}!
+
+Your account has been successfully verified and is now active.
+
+You can now start using all the features of Togetherly.
+
+Visit: ${this.config.appUrl}
+
+If you have any questions, feel free to reach out to our support team.
+
+The Togetherly Team ❤️
+    `;
+
+    await this.send({
+      to: email,
+      subject: "Welcome to Togetherly!",
+      text,
+      html,
+    });
+  }
+}

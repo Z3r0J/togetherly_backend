@@ -1,82 +1,206 @@
 import { DataSource } from "typeorm";
 import { ILogger } from "@domain/ports/logger.port.js";
-import { ITestRepository } from "@domain/ports/test.repository.js";
-import { TypeORMTestRepository } from "@infra/persistence/typeorm-test.repository.js";
 import {
-  CreateTestUseCase,
-  GetTestUseCase,
-  ListTestsUseCase,
-  UpdateTestUseCase,
-  DeleteTestUseCase,
+  IHashService,
+  ITokenService,
+  IMailerService,
+  IClock,
+} from "@domain/ports/index.js";
+import {
+  LoginWithPasswordUseCase,
+  RegisterUserWithPasswordUseCase,
 } from "@app/use-cases/index.js";
-import { TestController } from "../http/controllers/test.controller.js";
+import {
+  ICredentialRepository,
+  IMagicLinkRepository,
+  IOAuthAccountRepository,
+  IUserRepository,
+} from "@domain/ports/account.repository.js";
+import { UserRepository } from "@infra/persistence/index.js";
+import { CredentialRepository } from "@infra/persistence/repositories/credential.repository.js";
+import { OAuthRepository } from "@infra/persistence/repositories/oauth.repository.js";
+import { MagicLinkTokenRepository } from "@infra/persistence/repositories/magic-link.repository.js";
+import { AccountController } from "@interfaces/http/controllers/account.controller.js";
+import {
+  BcryptHashService,
+  JwtTokenService,
+  NodemailerService,
+  SystemClock,
+  type JwtConfig,
+  type MailerConfig,
+} from "@infra/services/index.js";
+import { validateEnv } from "@app/schemas/env.schema.js";
 
 /**
  * Simple dependency injection container
  * Centralizes the creation and wiring of all dependencies
  */
 export class DIContainer {
-  private static testRepository: ITestRepository;
-  private static testController: TestController;
+  private static userRepository: IUserRepository;
+  private static credentialRepository: ICredentialRepository;
+  private static oauthRepository: IOAuthAccountRepository;
+  private static magicLinkRepository: IMagicLinkRepository;
+
+  // Services
+  private static hashService: IHashService;
+  private static tokenService: ITokenService;
+  private static mailerService: IMailerService;
+  private static clockService: IClock;
+
+  private static accountController: AccountController;
 
   /**
    * Initialize the container with core dependencies
    */
   static initialize(dataSource: DataSource, logger: ILogger): void {
-    // Repositories
-    this.testRepository = new TypeORMTestRepository(dataSource);
+    const env = validateEnv();
 
-    // Use Cases
-    const createTestUseCase = new CreateTestUseCase(
-      this.testRepository,
-      logger
-    );
-    const getTestUseCase = new GetTestUseCase(this.testRepository, logger);
-    const listTestsUseCase = new ListTestsUseCase(this.testRepository, logger);
-    const updateTestUseCase = new UpdateTestUseCase(
-      this.testRepository,
-      logger
-    );
-    const deleteTestUseCase = new DeleteTestUseCase(
-      this.testRepository,
-      logger
+    // Repositories
+    this.userRepository = new UserRepository(dataSource);
+    this.credentialRepository = new CredentialRepository(dataSource);
+    this.oauthRepository = new OAuthRepository(dataSource);
+    this.magicLinkRepository = new MagicLinkTokenRepository(dataSource);
+
+    // Services
+    this.hashService = new BcryptHashService(env.BCRYPT_SALT_ROUNDS);
+    this.clockService = new SystemClock();
+
+    // JWT Token Service
+    const jwtConfig: JwtConfig = {
+      accessTokenSecret: env.JWT_ACCESS_SECRET,
+      refreshTokenSecret: env.JWT_REFRESH_SECRET,
+      verificationTokenSecret: env.JWT_VERIFICATION_SECRET,
+      accessTokenExpiry: env.JWT_ACCESS_EXPIRY,
+      refreshTokenExpiry: env.JWT_REFRESH_EXPIRY,
+      verificationTokenExpiry: env.JWT_VERIFICATION_EXPIRY,
+    };
+    this.tokenService = new JwtTokenService(jwtConfig);
+
+    // Mailer Service
+    const mailerConfig: MailerConfig = {
+      host: env.MAIL_HOST,
+      port: env.MAIL_PORT,
+      secure: env.MAIL_SECURE,
+      auth:
+        env.MAIL_USER && env.MAIL_PASS
+          ? {
+              user: env.MAIL_USER,
+              pass: env.MAIL_PASS,
+            }
+          : undefined,
+      from: env.MAIL_FROM,
+      appUrl: env.APP_URL,
+    };
+    this.mailerService = new NodemailerService(mailerConfig, logger);
+
+    // Account Use Cases
+    const loginWithPasswordUseCase = new LoginWithPasswordUseCase({
+      userRepo: this.userRepository,
+      credentialRepo: this.credentialRepository,
+      hash: this.hashService,
+      tokens: this.tokenService,
+    });
+
+    const registerUserWithPasswordUseCase = new RegisterUserWithPasswordUseCase(
+      {
+        userRepo: this.userRepository,
+        credentialRepo: this.credentialRepository,
+        hash: this.hashService,
+        clock: this.clockService.now.bind(this.clockService),
+        mailer: this.mailerService,
+        verifyEmailToken: {
+          issue: this.tokenService.issueVerificationToken.bind(
+            this.tokenService
+          ),
+        },
+      }
     );
 
     // Controllers
-    this.testController = new TestController(
-      createTestUseCase,
-      getTestUseCase,
-      listTestsUseCase,
-      updateTestUseCase,
-      deleteTestUseCase
+    this.accountController = new AccountController(
+      loginWithPasswordUseCase,
+      registerUserWithPasswordUseCase
     );
   }
 
-  /**
-   * Get the test controller instance
-   */
-  static getTestController(): TestController {
-    if (!this.testController) {
+  // Static methods to get instances
+  static getAccountController(): AccountController {
+    if (!this.accountController) {
       throw new Error("Container not initialized. Call initialize() first.");
     }
-    return this.testController;
+    return this.accountController;
   }
 
-  /**
-   * Get the test repository instance (useful for testing or advanced scenarios)
-   */
-  static getTestRepository(): ITestRepository {
-    if (!this.testRepository) {
+  // Service getters
+  static getHashService(): IHashService {
+    if (!this.hashService) {
       throw new Error("Container not initialized. Call initialize() first.");
     }
-    return this.testRepository;
+    return this.hashService;
+  }
+
+  static getTokenService(): ITokenService {
+    if (!this.tokenService) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.tokenService;
+  }
+
+  static getMailerService(): IMailerService {
+    if (!this.mailerService) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.mailerService;
+  }
+
+  static getClockService(): IClock {
+    if (!this.clockService) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.clockService;
+  }
+
+  // Repository getters for advanced use cases (if needed)
+  static getUserRepository(): IUserRepository {
+    if (!this.userRepository) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.userRepository;
+  }
+
+  static getCredentialRepository(): ICredentialRepository {
+    if (!this.credentialRepository) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.credentialRepository;
+  }
+
+  static getOAuthRepository(): IOAuthAccountRepository {
+    if (!this.oauthRepository) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.oauthRepository;
+  }
+
+  static getMagicLinkRepository(): IMagicLinkRepository {
+    if (!this.magicLinkRepository) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.magicLinkRepository;
   }
 
   /**
    * Clear all instances (useful for testing)
    */
   static reset(): void {
-    this.testRepository = null as any;
-    this.testController = null as any;
+    this.userRepository = null as any;
+    this.credentialRepository = null as any;
+    this.oauthRepository = null as any;
+    this.magicLinkRepository = null as any;
+    this.hashService = null as any;
+    this.tokenService = null as any;
+    this.mailerService = null as any;
+    this.clockService = null as any;
+    this.accountController = null as any;
   }
 }

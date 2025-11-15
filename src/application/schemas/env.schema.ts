@@ -21,6 +21,34 @@ export const envSchema = z.object({
 
   // Security
   API_KEY: z.string().optional(),
+
+  // JWT Configuration
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, "JWT access secret must be at least 32 characters"),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, "JWT refresh secret must be at least 32 characters"),
+  JWT_VERIFICATION_SECRET: z
+    .string()
+    .min(32, "JWT verification secret must be at least 32 characters"),
+  JWT_ACCESS_EXPIRY: z.string().default("15m"),
+  JWT_REFRESH_EXPIRY: z.string().default("7d"),
+  JWT_VERIFICATION_EXPIRY: z.string().default("24h"),
+
+  // Hash Configuration
+  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
+
+  // Email Configuration
+  MAIL_HOST: z.string().default("localhost"),
+  MAIL_PORT: z.coerce.number().int().positive().default(587),
+  MAIL_SECURE: z.coerce.boolean().default(false),
+  MAIL_USER: z.string().optional(),
+  MAIL_PASS: z.string().optional(),
+  MAIL_FROM: z.string().email().default("noreply@togetherly.app"),
+
+  // App Configuration
+  APP_URL: z.string().url().default("http://localhost:3000"),
 });
 
 export type Env = z.infer<typeof envSchema>;

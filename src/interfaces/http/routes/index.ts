@@ -1,1 +1,1 @@
-export * from "./test.routes.js";
+export * from "./account.routes.js";

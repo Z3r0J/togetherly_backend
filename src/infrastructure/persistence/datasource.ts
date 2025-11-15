@@ -1,6 +1,11 @@
 import { DataSource } from "typeorm";
 import { Env } from "@app/schemas/env.schema.js";
-import { OAuthSchema, UserSchema } from "./schemas/account";
+import {
+  CredentialSchema,
+  MagicLinkSchema,
+  OAuthSchema,
+  UserSchema,
+} from "./schemas/account";
 
 /**
  * Create TypeORM DataSource
@@ -15,7 +20,7 @@ export const createDataSource = (env: Env): DataSource => {
     database: env.DB_DATABASE,
     synchronize: env.NODE_ENV !== "production",
     logging: env.NODE_ENV === "development",
-    entities: [UserSchema, OAuthSchema],
+    entities: [UserSchema, OAuthSchema, CredentialSchema, MagicLinkSchema],
     migrations: [],
     subscribers: [],
   });
