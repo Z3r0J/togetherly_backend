@@ -14,6 +14,10 @@ export const UserSchema = new EntitySchema<User>({
       primary: true,
       generated: "uuid",
     },
+    name: {
+      type: "nvarchar",
+      length: 255,
+    },
     email: {
       type: "nvarchar",
       length: 255,

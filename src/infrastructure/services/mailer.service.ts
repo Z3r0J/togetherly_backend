@@ -25,9 +25,38 @@ export class NodemailerService implements IMailerService {
     this.transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,
-      secure: config.secure,
+      secure: config.secure, // true for 465, false for other ports
       auth: config.auth,
+      // Add additional options for better compatibility
+      requireTLS: !config.secure && config.port === 587, // Use STARTTLS for port 587
+      tls: {
+        // Do not fail on invalid certs (for development)
+        rejectUnauthorized: false,
+      },
     });
+
+    // Verify connection configuration on startup
+    this.verifyConnection();
+  }
+
+  /**
+   * Verify the SMTP connection
+   */
+  private async verifyConnection(): Promise<void> {
+    try {
+      await this.transporter.verify();
+      this.logger.info("SMTP connection verified successfully", {
+        host: this.config.host,
+        port: this.config.port,
+        secure: this.config.secure,
+      });
+    } catch (error) {
+      this.logger.error("Failed to verify SMTP connection", error as Error, {
+        host: this.config.host,
+        port: this.config.port,
+        secure: this.config.secure,
+      });
+    }
   }
 
   /**
@@ -229,6 +258,62 @@ The Togetherly Team ❤️
     await this.send({
       to: email,
       subject: "Welcome to Togetherly!",
+      text,
+      html,
+    });
+  }
+
+  /**
+   * Send a magic link email
+   * @param email - The recipient email address
+   * @param token - The magic link token
+   * @returns Promise that resolves when email is sent
+   */
+  async sendMagicLinkEmail(email: string, token: string): Promise<void> {
+    const magicLinkUrl = `${this.config.appUrl}/api/auth/validate-magic-link?token=${token}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Your Magic Link</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #4a90e2;">Sign in to Togetherly</h1>
+            <p>Click the button below to sign in to your account. This link will expire in 15 minutes.</p>
+            <div style="margin: 30px 0;">
+              <a href="${magicLinkUrl}" 
+                 style="background-color: #4a90e2; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block;">
+                Sign In
+              </a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #666;">${magicLinkUrl}</p>
+            <p style="margin-top: 30px; color: #999; font-size: 12px;">
+              If you didn't request this magic link, please ignore this email.
+              This link will expire in 15 minutes.
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+Sign in to Togetherly
+
+Click the link below to sign in to your account. This link will expire in 15 minutes.
+
+Magic link: ${magicLinkUrl}
+
+If you didn't request this magic link, please ignore this email.
+    `;
+
+    await this.send({
+      to: email,
+      subject: "Your Magic Link - Togetherly",
       text,
       html,
     });

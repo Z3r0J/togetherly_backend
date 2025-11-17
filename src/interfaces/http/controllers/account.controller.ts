@@ -3,6 +3,11 @@ import {
   LoginWithPasswordUseCase,
   RegisterResult,
   RegisterUserWithPasswordUseCase,
+  GetAuthenticatedUserUseCase,
+  GetAuthenticatedUserResult,
+  RequestMagicLinkUseCase,
+  ValidateMagicLinkUseCase,
+  ValidateMagicLinkResult,
 } from "@app/use-cases";
 import { Result } from "@shared/types";
 import { Response, Request, NextFunction } from "express";
@@ -10,7 +15,10 @@ import { Response, Request, NextFunction } from "express";
 export class AccountController {
   constructor(
     private loginWithPasswordUseCase: LoginWithPasswordUseCase,
-    private registerWithPasswordUseCase: RegisterUserWithPasswordUseCase
+    private registerWithPasswordUseCase: RegisterUserWithPasswordUseCase,
+    private getAuthenticatedUserUseCase: GetAuthenticatedUserUseCase,
+    private requestMagicLinkUseCase: RequestMagicLinkUseCase,
+    private validateMagicLinkUseCase: ValidateMagicLinkUseCase
   ) {}
 
   loginWithPassword = async (
@@ -35,6 +43,70 @@ export class AccountController {
     try {
       const result: Result<RegisterResult> =
         await this.registerWithPasswordUseCase.execute(req.body);
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Get authenticated user information
+   * This endpoint requires JWT authentication middleware
+   */
+  getAuthenticatedUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+        return;
+      }
+
+      const result: Result<GetAuthenticatedUserResult> =
+        await this.getAuthenticatedUserUseCase.execute({
+          userId: req.user.userId,
+        });
+
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Request a magic link to be sent to the user's email
+   */
+  requestMagicLink = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const result: Result<void> = await this.requestMagicLinkUseCase.execute(
+        req.body
+      );
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Validate a magic link token and return user info with JWT tokens
+   */
+  validateMagicLink = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const result: Result<ValidateMagicLinkResult> =
+        await this.validateMagicLinkUseCase.execute(req.body);
       this.sendResult(res, result);
     } catch (error) {
       next(error);

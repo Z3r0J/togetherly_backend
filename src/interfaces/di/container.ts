@@ -9,6 +9,9 @@ import {
 import {
   LoginWithPasswordUseCase,
   RegisterUserWithPasswordUseCase,
+  GetAuthenticatedUserUseCase,
+  RequestMagicLinkUseCase,
+  ValidateMagicLinkUseCase,
 } from "@app/use-cases/index.js";
 import {
   ICredentialRepository,
@@ -116,10 +119,32 @@ export class DIContainer {
       }
     );
 
+    const getAuthenticatedUserUseCase = new GetAuthenticatedUserUseCase({
+      userRepo: this.userRepository,
+    });
+
+    const requestMagicLinkUseCase = new RequestMagicLinkUseCase({
+      userRepo: this.userRepository,
+      magicLinkRepo: this.magicLinkRepository,
+      mailer: this.mailerService,
+      clock: this.clockService,
+      tokenExpiryMinutes: 15,
+    });
+
+    const validateMagicLinkUseCase = new ValidateMagicLinkUseCase({
+      magicLinkRepo: this.magicLinkRepository,
+      userRepo: this.userRepository,
+      tokenService: this.tokenService,
+      clock: this.clockService,
+    });
+
     // Controllers
     this.accountController = new AccountController(
       loginWithPasswordUseCase,
-      registerUserWithPasswordUseCase
+      registerUserWithPasswordUseCase,
+      getAuthenticatedUserUseCase,
+      requestMagicLinkUseCase,
+      validateMagicLinkUseCase
     );
   }
 

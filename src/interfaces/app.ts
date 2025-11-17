@@ -42,15 +42,16 @@ export class App {
     // Initialize DI container
     DIContainer.initialize(this.dataSource, this.logger);
 
-    // Get controller from container
+    // Get controller and services from container
     const accountController = DIContainer.getAccountController();
+    const tokenService = DIContainer.getTokenService();
 
     // Register routes
     const apiKeyMiddleware = createApiKeyMiddleware(this.env);
     this.app.use(
       "/api/auth",
       apiKeyMiddleware,
-      createAccountRoutes(accountController)
+      createAccountRoutes(accountController, tokenService)
     );
   }
 

@@ -42,10 +42,14 @@ export const envSchema = z.object({
   // Email Configuration
   MAIL_HOST: z.string().default("localhost"),
   MAIL_PORT: z.coerce.number().int().positive().default(587),
-  MAIL_SECURE: z.coerce.boolean().default(false),
-  MAIL_USER: z.string().optional(),
+  MAIL_SECURE: z
+    .string()
+    .transform((val) => val === "true" || val === "1")
+    .or(z.boolean())
+    .default(false),
+  MAIL_USER: z.string().email().optional(),
   MAIL_PASS: z.string().optional(),
-  MAIL_FROM: z.string().email().default("noreply@togetherly.app"),
+  MAIL_FROM: z.string().default("noreply@togetherly.app"),
 
   // App Configuration
   APP_URL: z.string().url().default("http://localhost:3000"),

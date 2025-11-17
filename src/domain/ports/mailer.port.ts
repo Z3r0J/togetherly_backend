@@ -42,4 +42,12 @@ export interface IMailerService {
    * @returns Promise that resolves when email is sent
    */
   sendWelcomeEmail(name: string, email: string): Promise<void>;
+
+  /**
+   * Send a magic link email
+   * @param email - The recipient email address
+   * @param token - The magic link token
+   * @returns Promise that resolves when email is sent
+   */
+  sendMagicLinkEmail(email: string, token: string): Promise<void>;
 }
