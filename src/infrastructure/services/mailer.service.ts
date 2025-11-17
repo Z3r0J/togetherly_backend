@@ -270,7 +270,7 @@ The Togetherly Team ❤️
    * @returns Promise that resolves when email is sent
    */
   async sendMagicLinkEmail(email: string, token: string): Promise<void> {
-    const magicLinkUrl = `${this.config.appUrl}/api/auth/validate-magic-link?token=${token}`;
+    const magicLinkUrl = `${this.config.appUrl}/api/auth/verify-magic-link?token=${token}`;
 
     const html = `
       <!DOCTYPE html>

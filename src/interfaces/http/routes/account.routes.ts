@@ -17,7 +17,10 @@ export const createAccountRoutes = (
   router.post("/register", controller.registerWithPassword);
   router.post("/login", controller.loginWithPassword);
   router.post("/magic-link", controller.requestMagicLink);
-  router.get("/validate-magic-link", controller.validateMagicLink);
+  router.post("/validate-magic-link", controller.validateMagicLink);
+
+  // Magic link redirect endpoint (for email links that open apps)
+  router.get("/verify-magic-link", controller.validateMagicLinkRedirect);
 
   // Protected routes
   router.get("/user", jwtAuth, controller.getAuthenticatedUser);
