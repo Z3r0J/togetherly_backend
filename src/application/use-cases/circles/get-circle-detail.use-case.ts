@@ -3,6 +3,7 @@ import {
   ICircleMemberRepository,
 } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/index.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 export type GetCircleDetailInput = {
   circleId: string;
@@ -57,11 +58,16 @@ export class GetCircleDetailUseCase {
     );
 
     if (!circleResult.ok) {
-      return Result.fail(circleResult.error || "Failed to find circle", 500);
+      return Result.fail(
+        circleResult.error,
+        500,
+        circleResult.errorCode || ErrorCode.DATABASE_ERROR,
+        circleResult.details
+      );
     }
 
     if (!circleResult.data) {
-      return Result.fail("Circle not found", 404);
+      return Result.fail("Circle not found", 404, ErrorCode.CIRCLE_NOT_FOUND);
     }
 
     const circle = circleResult.data;
@@ -73,7 +79,11 @@ export class GetCircleDetailUseCase {
     );
 
     if (!roleResult.ok || !roleResult.data) {
-      return Result.fail("You are not a member of this circle", 403);
+      return Result.fail(
+        "You are not a member of this circle",
+        403,
+        ErrorCode.NOT_CIRCLE_MEMBER
+      );
     }
 
     const userRole = roleResult.data;
@@ -84,7 +94,12 @@ export class GetCircleDetailUseCase {
     );
 
     if (!membersResult.ok) {
-      return Result.fail(membersResult.error || "Failed to get members", 500);
+      return Result.fail(
+        membersResult.error,
+        500,
+        membersResult.errorCode || ErrorCode.DATABASE_ERROR,
+        membersResult.details
+      );
     }
 
     const members: CircleMemberDetail[] = membersResult.data!.map((member) => ({

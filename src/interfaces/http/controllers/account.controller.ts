@@ -301,7 +301,7 @@ export class AccountController {
   };
 
   /**
-   * Helper to send Result as HTTP response
+   * Helper to send Result as HTTP response with standardized error format
    */
   private sendResult<T>(res: Response, result: Result<T>): void {
     const status = result.status || (result.ok ? 200 : 500);
@@ -314,7 +314,10 @@ export class AccountController {
     } else {
       res.status(status).json({
         success: false,
-        error: result.error,
+        ...(result.errorCode && { errorCode: result.errorCode }),
+        message: result.error,
+        ...(result.details && { details: result.details }),
+        timestamp: new Date().toISOString(),
       });
     }
   }

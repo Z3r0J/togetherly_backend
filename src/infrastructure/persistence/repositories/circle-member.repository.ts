@@ -1,6 +1,7 @@
 import { CircleMember } from "@domain/entities/circles/circle-members.entity.js";
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/index.js";
+import { ErrorCode, mapDatabaseError } from "@shared/errors/index.js";
 import { DataSource, Repository } from "typeorm";
 import { CircleMemberSchema } from "../schemas/circles/circle-member.schema.js";
 
@@ -18,7 +19,15 @@ export class CircleMemberRepository implements ICircleMemberRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error adding member";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.MEMBER_ADD_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -34,7 +43,10 @@ export class CircleMemberRepository implements ICircleMemberRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error finding member";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -51,7 +63,10 @@ export class CircleMemberRepository implements ICircleMemberRepository {
         error instanceof Error
           ? error.message
           : "Unknown error listing members";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -66,7 +81,15 @@ export class CircleMemberRepository implements ICircleMemberRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error updating role";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.MEMBER_UPDATE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -82,7 +105,15 @@ export class CircleMemberRepository implements ICircleMemberRepository {
         error instanceof Error
           ? error.message
           : "Unknown error removing member";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.MEMBER_REMOVE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -99,7 +130,10 @@ export class CircleMemberRepository implements ICircleMemberRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error getting role";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

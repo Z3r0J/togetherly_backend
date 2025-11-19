@@ -4,6 +4,7 @@ import {
 } from "@domain/ports/circle.repository.js";
 import { Circle, CircleMember } from "@domain/entities";
 import { Result } from "@shared/types/index.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 export type CreateCircleInput = {
   name: string;
@@ -48,7 +49,14 @@ export class CreateCircleUseCase {
     const createResult = await this.deps.circleRepo.create(circle);
 
     if (!createResult.ok || !createResult.data) {
-      return Result.fail("Failed to create circle", createResult.status || 500);
+      return Result.fail(
+        createResult.ok ? "Circle data is missing" : createResult.error,
+        createResult.status || 500,
+        !createResult.ok
+          ? createResult.errorCode || ErrorCode.CIRCLE_CREATE_FAILED
+          : ErrorCode.CIRCLE_CREATE_FAILED,
+        !createResult.ok ? createResult.details : undefined
+      );
     }
 
     const createdCircle = createResult.data;
@@ -67,7 +75,12 @@ export class CreateCircleUseCase {
     if (!addMemberResult.ok) {
       // Rollback: delete the circle if adding owner fails
       await this.deps.circleRepo.softDelete(createdCircle.id!);
-      return Result.fail("Failed to add owner to circle", 500);
+      return Result.fail(
+        addMemberResult.error,
+        500,
+        addMemberResult.errorCode || ErrorCode.MEMBER_ADD_FAILED,
+        addMemberResult.details
+      );
     }
 
     const result: CreateCircleResult = {

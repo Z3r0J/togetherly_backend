@@ -3,6 +3,7 @@ import {
   ICircleMemberRepository,
 } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/index.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 export type UpdateCircleInput = {
   circleId: string;
@@ -42,11 +43,16 @@ export class UpdateCircleUseCase {
     const circleResult = await this.deps.circleRepo.findById(circleId);
 
     if (!circleResult.ok) {
-      return Result.fail(circleResult.error || "Failed to find circle", 500);
+      return Result.fail(
+        circleResult.error,
+        500,
+        circleResult.errorCode || ErrorCode.DATABASE_ERROR,
+        circleResult.details
+      );
     }
 
     if (!circleResult.data) {
-      return Result.fail("Circle not found", 404);
+      return Result.fail("Circle not found", 404, ErrorCode.CIRCLE_NOT_FOUND);
     }
 
     // Check user permissions
@@ -56,25 +62,42 @@ export class UpdateCircleUseCase {
     );
 
     if (!roleResult.ok || !roleResult.data) {
-      return Result.fail("You are not a member of this circle", 403);
+      return Result.fail(
+        "You are not a member of this circle",
+        403,
+        ErrorCode.NOT_CIRCLE_MEMBER
+      );
     }
 
     const userRole = roleResult.data;
 
     // Only owner and admin can update
     if (userRole !== "owner" && userRole !== "admin") {
-      return Result.fail("Only owners and admins can update circles", 403);
+      return Result.fail(
+        "Only owners and admins can update circles",
+        403,
+        ErrorCode.INSUFFICIENT_PERMISSIONS
+      );
     }
 
     // Update circle
     const updateResult = await this.deps.circleRepo.update(circleId, updates);
 
     if (!updateResult.ok) {
-      return Result.fail("Failed to update circle", 500);
+      return Result.fail(
+        updateResult.error,
+        500,
+        updateResult.errorCode || ErrorCode.CIRCLE_UPDATE_FAILED,
+        updateResult.details
+      );
     }
 
     if (!updateResult.data) {
-      return Result.fail("Circle not found after update", 404);
+      return Result.fail(
+        "Circle not found after update",
+        404,
+        ErrorCode.CIRCLE_NOT_FOUND
+      );
     }
 
     const updatedCircle = updateResult.data;

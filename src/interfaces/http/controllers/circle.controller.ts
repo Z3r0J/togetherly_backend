@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Result } from "@shared/types/index.js";
+import { ErrorCode } from "@shared/errors/index.js";
 import {
   CreateCircleUseCase,
   UpdateCircleUseCase,
@@ -35,7 +36,9 @@ export class CircleController {
       if (!req.user || !req.user.userId) {
         res.status(401).json({
           success: false,
-          error: "Unauthorized",
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -66,7 +69,9 @@ export class CircleController {
       if (!req.user || !req.user.userId) {
         res.status(401).json({
           success: false,
-          error: "Unauthorized",
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -98,7 +103,9 @@ export class CircleController {
       if (!req.user || !req.user.userId) {
         res.status(401).json({
           success: false,
-          error: "Unauthorized",
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -128,7 +135,9 @@ export class CircleController {
       if (!req.user || !req.user.userId) {
         res.status(401).json({
           success: false,
-          error: "Unauthorized",
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -158,7 +167,9 @@ export class CircleController {
       if (!req.user || !req.user.userId) {
         res.status(401).json({
           success: false,
-          error: "Unauthorized",
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -185,11 +196,15 @@ export class CircleController {
       res.status(status).json({
         success: true,
         data: result.data,
+        timestamp: new Date().toISOString(),
       });
     } else {
       res.status(status).json({
         success: false,
-        error: result.error,
+        errorCode: result.errorCode,
+        message: result.error,
+        details: result.details,
+        timestamp: new Date().toISOString(),
       });
     }
   }

@@ -1,10 +1,18 @@
+import { ErrorCode } from "@shared/errors/error-codes.js";
+
 /**
  * Unified Result type for all operations
  * Replaces throwing errors with explicit success/failure handling
  */
 export type Result<T> =
   | { ok: true; data: T; status?: number }
-  | { ok: false; error: string; status?: number };
+  | {
+      ok: false;
+      error: string;
+      status?: number;
+      errorCode?: ErrorCode;
+      details?: any;
+    };
 
 /**
  * Helper functions for creating Result types
@@ -14,8 +22,20 @@ export const Result = {
     return { ok: true, data, status };
   },
 
-  fail<T = never>(error: string, status?: number): Result<T> {
-    return { ok: false, error, status };
+  /**
+   * Create a failure result with optional error code
+   * @param error - Human-readable error message (fallback, Flutter should translate errorCode)
+   * @param status - HTTP status code
+   * @param errorCode - Standardized error code for Flutter translation
+   * @param details - Additional error details for debugging
+   */
+  fail<T = never>(
+    error: string,
+    status?: number,
+    errorCode?: ErrorCode,
+    details?: any
+  ): Result<T> {
+    return { ok: false, error, status, errorCode, details };
   },
 
   /**

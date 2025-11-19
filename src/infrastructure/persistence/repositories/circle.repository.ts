@@ -1,6 +1,7 @@
 import { Circle } from "@domain/entities/circles/circle.entity.js";
 import { ICircleRepository } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/index.js";
+import { ErrorCode, mapDatabaseError } from "@shared/errors/index.js";
 import { DataSource, Repository } from "typeorm";
 import { CircleSchema } from "../schemas/circles/circle.schema.js";
 
@@ -13,14 +14,22 @@ export class CircleRepository implements ICircleRepository {
 
   async create(circle: Circle): Promise<Result<Circle>> {
     try {
-      const saved = await this.repository.save(circle);
-      return Result.ok(saved);
+      const savedCircle = await this.repository.save(circle);
+      return Result.ok(savedCircle);
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : "Unknown error creating circle";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.CIRCLE_CREATE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -51,7 +60,10 @@ export class CircleRepository implements ICircleRepository {
         error instanceof Error
           ? error.message
           : "Unknown error fetching circle";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -70,7 +82,15 @@ export class CircleRepository implements ICircleRepository {
         error instanceof Error
           ? error.message
           : "Unknown error updating circle";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.CIRCLE_UPDATE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -86,7 +106,15 @@ export class CircleRepository implements ICircleRepository {
         error instanceof Error
           ? error.message
           : "Unknown error deleting circle";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.CIRCLE_DELETE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -117,7 +145,10 @@ export class CircleRepository implements ICircleRepository {
         error instanceof Error
           ? error.message
           : "Unknown error listing circles";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

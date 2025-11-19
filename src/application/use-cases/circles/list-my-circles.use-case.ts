@@ -1,5 +1,6 @@
 import { ICircleRepository } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/index.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 export type ListMyCirclesInput = {
   userId: string;
@@ -40,7 +41,12 @@ export class ListMyCirclesUseCase {
     const listResult = await this.deps.circleRepo.listMyCircles(userId);
 
     if (!listResult.ok) {
-      return Result.fail(listResult.error || "Failed to list circles", 500);
+      return Result.fail(
+        listResult.error,
+        500,
+        listResult.errorCode || ErrorCode.DATABASE_ERROR,
+        listResult.details
+      );
     }
 
     const circles: CircleListItem[] = listResult.data!.map((circle) => ({

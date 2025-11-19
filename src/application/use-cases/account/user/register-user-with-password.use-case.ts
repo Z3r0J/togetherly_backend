@@ -4,6 +4,7 @@ import {
   IUserRepository,
 } from "@domain/ports/account.repository";
 import { Result } from "@shared/types";
+import { ErrorCode } from "@shared/errors/index.js";
 
 type Deps = {
   userRepo: IUserRepository;
@@ -39,8 +40,10 @@ export class RegisterUserWithPasswordUseCase {
     const dto = createUserSchema.safeParse(input);
     if (!dto.success) {
       return Result.fail(
-        `Invalid input: ${dto.error.flatten().fieldErrors}`,
-        400
+        "Invalid input format",
+        400,
+        ErrorCode.VALIDATION_FAILED,
+        dto.error.flatten().fieldErrors
       );
     }
 
@@ -55,8 +58,10 @@ export class RegisterUserWithPasswordUseCase {
 
     if (!userResult.ok) {
       return Result.fail(
-        `Failed to create user: ${userResult.error}`,
-        userResult.status
+        userResult.error,
+        userResult.status,
+        userResult.errorCode || ErrorCode.REGISTRATION_FAILED,
+        userResult.details
       );
     }
 
@@ -71,15 +76,22 @@ export class RegisterUserWithPasswordUseCase {
 
     if (!credentialResult.ok) {
       return Result.fail(
-        `Failed to set user password: ${credentialResult.error}`,
-        credentialResult.status
+        credentialResult.error,
+        credentialResult.status,
+        credentialResult.errorCode || ErrorCode.REGISTRATION_FAILED,
+        credentialResult.details
       );
     }
 
     // Send verification email (optional)
     if (mailer && verifyEmailToken) {
-      const token = await verifyEmailToken.issue(userId);
-      await mailer.sendVerifyEmail(userId, userResult.data.email, token);
+      try {
+        const token = await verifyEmailToken.issue(userId);
+        await mailer.sendVerifyEmail(userId, userResult.data.email, token);
+      } catch (error: any) {
+        // Don't fail registration if email sending fails, just log it
+        console.error("Failed to send verification email:", error);
+      }
     }
 
     return Result.ok({ userId });
