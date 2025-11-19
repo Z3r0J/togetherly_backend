@@ -12,6 +12,7 @@ import {
   GetAuthenticatedUserUseCase,
   RequestMagicLinkUseCase,
   ValidateMagicLinkUseCase,
+  ValidateEmailVerificationUseCase,
 } from "@app/use-cases/index.js";
 import {
   CreateCircleUseCase,
@@ -196,6 +197,13 @@ export class DIContainer {
       clock: this.clockService,
     });
 
+    const validateEmailVerificationUseCase =
+      new ValidateEmailVerificationUseCase({
+        userRepo: this.userRepository,
+        tokenService: this.tokenService,
+        clock: this.clockService,
+      });
+
     // Circle Use Cases
     const createCircleUseCase = new CreateCircleUseCase({
       circleRepo: this.circleRepository,
@@ -274,7 +282,8 @@ export class DIContainer {
       registerUserWithPasswordUseCase,
       getAuthenticatedUserUseCase,
       requestMagicLinkUseCase,
-      validateMagicLinkUseCase
+      validateMagicLinkUseCase,
+      validateEmailVerificationUseCase
     );
 
     this.circleController = new CircleController(

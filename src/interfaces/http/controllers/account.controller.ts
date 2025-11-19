@@ -8,6 +8,8 @@ import {
   RequestMagicLinkUseCase,
   ValidateMagicLinkUseCase,
   ValidateMagicLinkResult,
+  ValidateEmailVerificationUseCase,
+  ValidateEmailVerificationResult,
 } from "@app/use-cases";
 import { Result } from "@shared/types";
 import { Response, Request, NextFunction } from "express";
@@ -18,7 +20,8 @@ export class AccountController {
     private registerWithPasswordUseCase: RegisterUserWithPasswordUseCase,
     private getAuthenticatedUserUseCase: GetAuthenticatedUserUseCase,
     private requestMagicLinkUseCase: RequestMagicLinkUseCase,
-    private validateMagicLinkUseCase: ValidateMagicLinkUseCase
+    private validateMagicLinkUseCase: ValidateMagicLinkUseCase,
+    private validateEmailVerificationUseCase: ValidateEmailVerificationUseCase
   ) {}
 
   loginWithPassword = async (
@@ -192,6 +195,99 @@ export class AccountController {
               window.location.href = '${mobileDeepLink}';
               
               // After 2 seconds, if still on this page, redirect to web
+              setTimeout(function() {
+                document.getElementById('webLink').click();
+              }, 2000);
+            </script>
+          </body>
+        </html>
+      `);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Validate email verification token and automatically authenticate user
+   * This endpoint is designed to be opened from email links
+   * GET /auth/verify-email?token=xxx
+   */
+  validateEmailVerification = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const token = req.query.token as string;
+
+      if (!token) {
+        res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+            <head><title>Invalid Link</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+              <h1>❌ Invalid Verification Link</h1>
+              <p>The verification link is missing or invalid.</p>
+            </body>
+          </html>
+        `);
+        return;
+      }
+
+      const result: Result<ValidateEmailVerificationResult> =
+        await this.validateEmailVerificationUseCase.execute({ token });
+
+      if (!result.ok) {
+        res.status(result.status || 401).send(`
+          <!DOCTYPE html>
+          <html>
+            <head><title>Verification Failed</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+              <h1>❌ Verification Failed</h1>
+              <p>${result.error}</p>
+              <p style="margin-top: 30px;">
+                <a href="${process.env.APP_URL}" style="color: #4a90e2;">Return to Home</a>
+              </p>
+            </body>
+          </html>
+        `);
+        return;
+      }
+
+      // Success - redirect to mobile app with deep link or web fallback
+      const { tokens } = result.data;
+
+      // Encode tokens for URL
+      const accessToken = encodeURIComponent(tokens.accessToken);
+      const refreshToken = encodeURIComponent(tokens.refreshToken);
+
+      // Deep link for mobile app
+      const mobileDeepLink = `togetherly://auth/verified?accessToken=${accessToken}&refreshToken=${refreshToken}`;
+
+      // Web fallback URL
+      const webUrl = `${process.env.APP_URL}/auth/verified?accessToken=${accessToken}&refreshToken=${refreshToken}`;
+
+      // Send HTML that attempts to open the app, then falls back to web
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Email Verified!</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+          </head>
+          <body style="font-family: Arial; text-align: center; padding: 50px;">
+            <h1 style="color: #4a90e2;">✅ Email Verified!</h1>
+            <p>Your email has been successfully verified.</p>
+            <p>Redirecting you to the app...</p>
+            <p style="margin-top: 30px; color: #666;">
+              If you're not redirected automatically, 
+              <a href="${webUrl}" id="webLink" style="color: #4a90e2;">click here</a>.
+            </p>
+            <script>
+              // Try to open the mobile app
+              window.location.href = '${mobileDeepLink}';
+              
+              // Fallback to web after 2 seconds
               setTimeout(function() {
                 document.getElementById('webLink').click();
               }, 2000);

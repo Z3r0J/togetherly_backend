@@ -22,6 +22,9 @@ export const createAccountRoutes = (
   // Magic link redirect endpoint (for email links that open apps)
   router.get("/verify-magic-link", controller.validateMagicLinkRedirect);
 
+  // Email verification endpoint (automatically authenticates user)
+  router.get("/verify-email", controller.validateEmailVerification);
+
   // Protected routes
   router.get("/user", jwtAuth, controller.getAuthenticatedUser);
 

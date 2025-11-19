@@ -101,7 +101,7 @@ export class NodemailerService implements IMailerService {
     email: string,
     token: string
   ): Promise<void> {
-    const verificationUrl = `${this.config.appUrl}/verify-email?token=${token}`;
+    const verificationUrl = `${this.config.appUrl}/api/auth/verify-email?token=${token}`;
 
     const html = `
       <!DOCTYPE html>
