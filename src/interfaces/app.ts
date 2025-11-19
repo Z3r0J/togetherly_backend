@@ -9,6 +9,7 @@ import { DIContainer } from "./di/container.js";
 import {
   createAccountRoutes,
   createCircleRoutes,
+  createEventRoutes,
 } from "./http/routes/index.js";
 
 /**
@@ -48,6 +49,7 @@ export class App {
     // Get controller and services from container
     const accountController = DIContainer.getAccountController();
     const circleController = DIContainer.getCircleController();
+    const eventController = DIContainer.getEventController();
     const tokenService = DIContainer.getTokenService();
 
     // Register routes
@@ -61,6 +63,11 @@ export class App {
       "/api/circles",
       apiKeyMiddleware,
       createCircleRoutes(circleController, tokenService)
+    );
+    this.app.use(
+      "/api/events",
+      apiKeyMiddleware,
+      createEventRoutes(eventController, tokenService)
     );
   }
 

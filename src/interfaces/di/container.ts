@@ -21,23 +21,41 @@ import {
   GetCircleDetailUseCase,
 } from "@app/use-cases/circles/index.js";
 import {
+  CreateEventUseCase,
+  GetEventDetailUseCase,
+  UpdateEventUseCase,
+  DeleteEventUseCase,
+  UpdateRsvpUseCase,
+  VoteEventTimeUseCase,
+  LockEventUseCase,
+  FinalizeEventUseCase,
+} from "@app/use-cases/events/index.js";
+import {
   ICredentialRepository,
   IMagicLinkRepository,
   IOAuthAccountRepository,
   IUserRepository,
 } from "@domain/ports/account.repository.js";
+import { ICircleRepository } from "@domain/ports/circle.repository.js";
 import {
-  ICircleRepository,
-  ICircleMemberRepository,
-} from "@domain/ports/circle.repository.js";
+  IEventRepository,
+  IEventRsvpRepository,
+  IEventTimeRepository,
+  IEventTimeVoteRepository,
+} from "@domain/ports/event.repository.js";
 import { UserRepository } from "@infra/persistence/index.js";
 import { CredentialRepository } from "@infra/persistence/repositories/credential.repository.js";
 import { OAuthRepository } from "@infra/persistence/repositories/oauth.repository.js";
 import { MagicLinkTokenRepository } from "@infra/persistence/repositories/magic-link.repository.js";
 import { CircleRepository } from "@infra/persistence/repositories/circle.repository.js";
 import { CircleMemberRepository } from "@infra/persistence/repositories/circle-member.repository.js";
+import { EventRepository } from "@infra/persistence/repositories/event.repository.js";
+import { EventRsvpRepository } from "@infra/persistence/repositories/event-rsvp.repository.js";
+import { EventTimeRepository } from "@infra/persistence/repositories/event-time.repository.js";
+import { EventTimeVoteRepository } from "@infra/persistence/repositories/event-time-vote.repository.js";
 import { AccountController } from "@interfaces/http/controllers/account.controller.js";
 import { CircleController } from "@interfaces/http/controllers/circle.controller.js";
+import { EventController } from "@interfaces/http/controllers/event.controller.js";
 import {
   BcryptHashService,
   JwtTokenService,
@@ -58,7 +76,11 @@ export class DIContainer {
   private static oauthRepository: IOAuthAccountRepository;
   private static magicLinkRepository: IMagicLinkRepository;
   private static circleRepository: ICircleRepository;
-  private static circleMemberRepository: ICircleMemberRepository;
+  private static circleMemberRepository: CircleMemberRepository;
+  private static eventRepository: IEventRepository;
+  private static eventRsvpRepository: IEventRsvpRepository;
+  private static eventTimeRepository: IEventTimeRepository;
+  private static eventTimeVoteRepository: IEventTimeVoteRepository;
 
   // Services
   private static hashService: IHashService;
@@ -68,6 +90,7 @@ export class DIContainer {
 
   private static accountController: AccountController;
   private static circleController: CircleController;
+  private static eventController: EventController;
 
   /**
    * Initialize the container with core dependencies
@@ -82,6 +105,22 @@ export class DIContainer {
     this.magicLinkRepository = new MagicLinkTokenRepository(dataSource);
     this.circleRepository = new CircleRepository(dataSource);
     this.circleMemberRepository = new CircleMemberRepository(dataSource);
+
+    // Event Repositories
+    this.eventRepository = new EventRepository(
+      dataSource.getRepository("Event"),
+      dataSource.getRepository("EventTime"),
+      dataSource.getRepository("EventRsvp")
+    );
+    this.eventRsvpRepository = new EventRsvpRepository(
+      dataSource.getRepository("EventRsvp")
+    );
+    this.eventTimeRepository = new EventTimeRepository(
+      dataSource.getRepository("EventTime")
+    );
+    this.eventTimeVoteRepository = new EventTimeVoteRepository(
+      dataSource.getRepository("EventTimeVote")
+    );
 
     // Services
     this.hashService = new BcryptHashService(env.BCRYPT_SALT_ROUNDS);
@@ -182,6 +221,53 @@ export class DIContainer {
       circleMemberRepo: this.circleMemberRepository,
     });
 
+    // Event Use Cases
+    const createEventUseCase = new CreateEventUseCase(
+      this.eventRepository,
+      this.eventTimeRepository,
+      this.circleMemberRepository
+    );
+
+    const getEventDetailUseCase = new GetEventDetailUseCase(
+      this.eventRepository,
+      this.circleMemberRepository
+    );
+
+    const updateEventUseCase = new UpdateEventUseCase(
+      this.eventRepository,
+      this.circleMemberRepository
+    );
+
+    const deleteEventUseCase = new DeleteEventUseCase(
+      this.eventRepository,
+      this.circleMemberRepository
+    );
+
+    const updateRsvpUseCase = new UpdateRsvpUseCase(
+      this.eventRsvpRepository,
+      this.eventRepository,
+      this.circleMemberRepository
+    );
+
+    const voteEventTimeUseCase = new VoteEventTimeUseCase(
+      this.eventTimeVoteRepository,
+      this.eventTimeRepository,
+      this.eventRepository,
+      this.circleMemberRepository
+    );
+
+    const lockEventUseCase = new LockEventUseCase(
+      this.eventRepository,
+      this.eventTimeRepository,
+      this.circleMemberRepository
+    );
+
+    const finalizeEventUseCase = new FinalizeEventUseCase(
+      this.eventRepository,
+      this.eventTimeRepository,
+      this.circleMemberRepository
+    );
+
     // Controllers
     this.accountController = new AccountController(
       loginWithPasswordUseCase,
@@ -198,6 +284,17 @@ export class DIContainer {
       listMyCirclesUseCase,
       getCircleDetailUseCase
     );
+
+    this.eventController = new EventController(
+      createEventUseCase,
+      getEventDetailUseCase,
+      updateEventUseCase,
+      deleteEventUseCase,
+      updateRsvpUseCase,
+      voteEventTimeUseCase,
+      lockEventUseCase,
+      finalizeEventUseCase
+    );
   }
 
   // Static methods to get instances
@@ -213,6 +310,13 @@ export class DIContainer {
       throw new Error("Container not initialized. Call initialize() first.");
     }
     return this.circleController;
+  }
+
+  static getEventController(): EventController {
+    if (!this.eventController) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.eventController;
   }
 
   // Service getters

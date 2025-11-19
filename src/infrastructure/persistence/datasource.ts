@@ -7,6 +7,12 @@ import {
   UserSchema,
 } from "./schemas/account";
 import { CircleSchema, CircleMemberSchema } from "./schemas/circles";
+import {
+  EventSchema,
+  EventRsvpSchema,
+  EventTimeSchema,
+  EventTimeVoteSchema,
+} from "./schemas/events";
 
 /**
  * Create TypeORM DataSource
@@ -28,6 +34,10 @@ export const createDataSource = (env: Env): DataSource => {
       MagicLinkSchema,
       CircleSchema,
       CircleMemberSchema,
+      EventSchema,
+      EventRsvpSchema,
+      EventTimeSchema,
+      EventTimeVoteSchema,
     ],
     migrations: [],
     subscribers: [],

@@ -61,6 +61,11 @@ export const CircleSchema = new EntitySchema<Circle>({
         name: "owner_id",
       },
     },
+    events:{
+        "type":"one-to-many",
+        "target":"Event",
+        "inverseSide":"circle"
+    }
   },
   indices: [
     {

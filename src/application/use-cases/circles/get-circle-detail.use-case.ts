@@ -26,6 +26,7 @@ export type GetCircleDetailResult = {
   privacy: string;
   ownerId: string;
   members: CircleMemberDetail[];
+  events?: any[];
   userRole: string;
   canEdit: boolean;
   canDelete: boolean;
@@ -103,6 +104,7 @@ export class GetCircleDetailUseCase {
       privacy: circle.privacy!,
       ownerId: circle.ownerId,
       members,
+      events: circle.events || [],
       userRole,
       canEdit: userRole === "owner" || userRole === "admin",
       canDelete: userRole === "owner",

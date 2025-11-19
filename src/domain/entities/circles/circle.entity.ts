@@ -5,7 +5,8 @@
  * @version 1.0.0
  */
 
-import { User } from "..";
+import { User } from "../account/user.entity.js";
+import { Event } from "../events/event.entity.js";
 
 export interface Circle {
   id?: string;
@@ -19,6 +20,7 @@ export interface Circle {
   updatedAt?: Date;
   deletedAt?: Date | null;
   owner?: User;
+  events?: Event[];
 }
 
 export const createCircle = (

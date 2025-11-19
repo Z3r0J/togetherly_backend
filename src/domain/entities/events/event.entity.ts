@@ -11,15 +11,19 @@ export interface Event {
   id?: string;
   circleId: string;
   title: string;
-  description?: string;
+  description?: string; // Keep for backward compatibility or internal use
+  notes?: string; // User-facing notes field (matches UI)
   location?: {
-    longitude: number;
-    latitude: number;
-    name?: string;
+    name: string; // Required when location is set
+    longitude?: number;
+    latitude?: number;
   };
   userId: string;
   startsAt?: Date;
   endsAt?: Date;
+  allDay?: boolean; // All-day event toggle
+  color?: string; // Color tag for the event
+  reminderMinutes?: number; // Reminder time in minutes (15, 30, 60, etc.)
   status?: "draft" | "locked" | "finalized";
   isDeleted?: boolean;
   createdAt?: Date;
@@ -39,9 +43,13 @@ export const createEvent = (
     circleId: props.circleId,
     title: props.title,
     description: props.description,
+    notes: props.notes,
     location: props.location,
     startsAt: props.startsAt,
     endsAt: props.endsAt,
+    allDay: props.allDay,
+    color: props.color,
+    reminderMinutes: props.reminderMinutes,
     status: props.status,
     userId: props.userId,
   };

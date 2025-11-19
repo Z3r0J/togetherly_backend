@@ -43,7 +43,7 @@ export class CircleRepository implements ICircleRepository {
     try {
       const circle = await this.repository.findOne({
         where: { id, isDeleted: false },
-        relations: ["owner"],
+        relations: ["owner", "events"],
       });
       return Result.ok(circle);
     } catch (error) {
