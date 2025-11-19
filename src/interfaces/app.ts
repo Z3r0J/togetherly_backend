@@ -6,7 +6,10 @@ import { Env } from "@app/schemas/env.schema.js";
 import { createApiKeyMiddleware } from "./http/middlewares/auth.middleware.js";
 import { createErrorHandler } from "./http/middlewares/error.middleware.js";
 import { DIContainer } from "./di/container.js";
-import { createAccountRoutes } from "./http/routes/index.js";
+import {
+  createAccountRoutes,
+  createCircleRoutes,
+} from "./http/routes/index.js";
 
 /**
  * Application configuration and dependency injection
@@ -44,6 +47,7 @@ export class App {
 
     // Get controller and services from container
     const accountController = DIContainer.getAccountController();
+    const circleController = DIContainer.getCircleController();
     const tokenService = DIContainer.getTokenService();
 
     // Register routes
@@ -52,6 +56,11 @@ export class App {
       "/api/auth",
       apiKeyMiddleware,
       createAccountRoutes(accountController, tokenService)
+    );
+    this.app.use(
+      "/api/circles",
+      apiKeyMiddleware,
+      createCircleRoutes(circleController, tokenService)
     );
   }
 

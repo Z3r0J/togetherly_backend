@@ -14,16 +14,30 @@ import {
   ValidateMagicLinkUseCase,
 } from "@app/use-cases/index.js";
 import {
+  CreateCircleUseCase,
+  UpdateCircleUseCase,
+  DeleteCircleUseCase,
+  ListMyCirclesUseCase,
+  GetCircleDetailUseCase,
+} from "@app/use-cases/circles/index.js";
+import {
   ICredentialRepository,
   IMagicLinkRepository,
   IOAuthAccountRepository,
   IUserRepository,
 } from "@domain/ports/account.repository.js";
+import {
+  ICircleRepository,
+  ICircleMemberRepository,
+} from "@domain/ports/circle.repository.js";
 import { UserRepository } from "@infra/persistence/index.js";
 import { CredentialRepository } from "@infra/persistence/repositories/credential.repository.js";
 import { OAuthRepository } from "@infra/persistence/repositories/oauth.repository.js";
 import { MagicLinkTokenRepository } from "@infra/persistence/repositories/magic-link.repository.js";
+import { CircleRepository } from "@infra/persistence/repositories/circle.repository.js";
+import { CircleMemberRepository } from "@infra/persistence/repositories/circle-member.repository.js";
 import { AccountController } from "@interfaces/http/controllers/account.controller.js";
+import { CircleController } from "@interfaces/http/controllers/circle.controller.js";
 import {
   BcryptHashService,
   JwtTokenService,
@@ -43,6 +57,8 @@ export class DIContainer {
   private static credentialRepository: ICredentialRepository;
   private static oauthRepository: IOAuthAccountRepository;
   private static magicLinkRepository: IMagicLinkRepository;
+  private static circleRepository: ICircleRepository;
+  private static circleMemberRepository: ICircleMemberRepository;
 
   // Services
   private static hashService: IHashService;
@@ -51,6 +67,7 @@ export class DIContainer {
   private static clockService: IClock;
 
   private static accountController: AccountController;
+  private static circleController: CircleController;
 
   /**
    * Initialize the container with core dependencies
@@ -63,6 +80,8 @@ export class DIContainer {
     this.credentialRepository = new CredentialRepository(dataSource);
     this.oauthRepository = new OAuthRepository(dataSource);
     this.magicLinkRepository = new MagicLinkTokenRepository(dataSource);
+    this.circleRepository = new CircleRepository(dataSource);
+    this.circleMemberRepository = new CircleMemberRepository(dataSource);
 
     // Services
     this.hashService = new BcryptHashService(env.BCRYPT_SALT_ROUNDS);
@@ -138,6 +157,31 @@ export class DIContainer {
       clock: this.clockService,
     });
 
+    // Circle Use Cases
+    const createCircleUseCase = new CreateCircleUseCase({
+      circleRepo: this.circleRepository,
+      circleMemberRepo: this.circleMemberRepository,
+    });
+
+    const updateCircleUseCase = new UpdateCircleUseCase({
+      circleRepo: this.circleRepository,
+      circleMemberRepo: this.circleMemberRepository,
+    });
+
+    const deleteCircleUseCase = new DeleteCircleUseCase({
+      circleRepo: this.circleRepository,
+      circleMemberRepo: this.circleMemberRepository,
+    });
+
+    const listMyCirclesUseCase = new ListMyCirclesUseCase({
+      circleRepo: this.circleRepository,
+    });
+
+    const getCircleDetailUseCase = new GetCircleDetailUseCase({
+      circleRepo: this.circleRepository,
+      circleMemberRepo: this.circleMemberRepository,
+    });
+
     // Controllers
     this.accountController = new AccountController(
       loginWithPasswordUseCase,
@@ -145,6 +189,14 @@ export class DIContainer {
       getAuthenticatedUserUseCase,
       requestMagicLinkUseCase,
       validateMagicLinkUseCase
+    );
+
+    this.circleController = new CircleController(
+      createCircleUseCase,
+      updateCircleUseCase,
+      deleteCircleUseCase,
+      listMyCirclesUseCase,
+      getCircleDetailUseCase
     );
   }
 
@@ -154,6 +206,13 @@ export class DIContainer {
       throw new Error("Container not initialized. Call initialize() first.");
     }
     return this.accountController;
+  }
+
+  static getCircleController(): CircleController {
+    if (!this.circleController) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.circleController;
   }
 
   // Service getters

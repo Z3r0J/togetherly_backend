@@ -6,6 +6,7 @@ import {
   OAuthSchema,
   UserSchema,
 } from "./schemas/account";
+import { CircleSchema, CircleMemberSchema } from "./schemas/circles";
 
 /**
  * Create TypeORM DataSource
@@ -20,7 +21,14 @@ export const createDataSource = (env: Env): DataSource => {
     database: env.DB_DATABASE,
     synchronize: env.NODE_ENV !== "production",
     logging: env.NODE_ENV === "development",
-    entities: [UserSchema, OAuthSchema, CredentialSchema, MagicLinkSchema],
+    entities: [
+      UserSchema,
+      OAuthSchema,
+      CredentialSchema,
+      MagicLinkSchema,
+      CircleSchema,
+      CircleMemberSchema,
+    ],
     migrations: [],
     subscribers: [],
   });
