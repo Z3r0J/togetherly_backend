@@ -2,6 +2,7 @@ import { Repository } from "typeorm";
 import { EventTimeVote } from "@domain/entities/events/event-time-votes.entity.js";
 import { IEventTimeVoteRepository } from "@domain/ports/event.repository.js";
 import { Result } from "@shared/types/Result.js";
+import { ErrorCode, mapDatabaseError } from "@shared/errors/index.js";
 
 /**
  * Event Time Vote Repository
@@ -32,7 +33,10 @@ export class EventTimeVoteRepository implements IEventTimeVoteRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error upserting vote";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.VOTE_FAILED, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -60,7 +64,10 @@ export class EventTimeVoteRepository implements IEventTimeVoteRepository {
         error instanceof Error
           ? error.message
           : "Unknown error finding user vote";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -97,7 +104,10 @@ export class EventTimeVoteRepository implements IEventTimeVoteRepository {
         error instanceof Error
           ? error.message
           : "Unknown error removing user votes";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -113,7 +123,10 @@ export class EventTimeVoteRepository implements IEventTimeVoteRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error counting votes";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -131,7 +144,10 @@ export class EventTimeVoteRepository implements IEventTimeVoteRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error finding votes";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -148,7 +164,10 @@ export class EventTimeVoteRepository implements IEventTimeVoteRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error deleting vote";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

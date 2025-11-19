@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { ErrorCode } from "@shared/errors/index.js";
 import {
   CreateEventUseCase,
   GetEventDetailUseCase,
@@ -44,8 +45,10 @@ export class EventController {
 
       if (!validation.success) {
         res.status(400).json({
-          ok: false,
-          error: validation.error.errors[0].message,
+          success: false,
+          errorCode: ErrorCode.VALIDATION_FAILED,
+          message: validation.error.errors[0].message,
+          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -56,21 +59,27 @@ export class EventController {
       );
 
       if (!result.ok) {
-        res.status(400).json({
-          ok: false,
-          error: result.error,
+        res.status(result.status || 400).json({
+          success: false,
+          errorCode: result.errorCode || ErrorCode.EVENT_CREATE_FAILED,
+          message: result.error,
+          details: result.details,
+          timestamp: new Date().toISOString(),
         });
         return;
       }
 
       res.status(201).json({
-        ok: true,
+        success: true,
         data: result.data,
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       res.status(500).json({
-        ok: false,
-        error: "Internal server error",
+        success: false,
+        errorCode: ErrorCode.INTERNAL_SERVER_ERROR,
+        message: "Internal server error",
+        timestamp: new Date().toISOString(),
       });
     }
   };

@@ -4,6 +4,7 @@ import { EventTime } from "@domain/entities/events/event-time.entity.js";
 import { EventRsvp } from "@domain/entities/events/event-rsvps.entity.js";
 import { IEventRepository } from "@domain/ports/event.repository.js";
 import { Result } from "@shared/types/Result.js";
+import { ErrorCode, mapDatabaseError } from "@shared/errors/index.js";
 
 /**
  * Event Repository
@@ -25,7 +26,15 @@ export class EventRepository implements IEventRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error creating event";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.EVENT_CREATE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -41,7 +50,10 @@ export class EventRepository implements IEventRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error finding event";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -113,7 +125,10 @@ export class EventRepository implements IEventRepository {
         error instanceof Error
           ? error.message
           : "Unknown error finding event details";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -130,7 +145,10 @@ export class EventRepository implements IEventRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error finding events";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -144,7 +162,15 @@ export class EventRepository implements IEventRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error updating event";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.EVENT_UPDATE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -161,7 +187,15 @@ export class EventRepository implements IEventRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error deleting event";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.EVENT_DELETE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -182,7 +216,10 @@ export class EventRepository implements IEventRepository {
         error instanceof Error
           ? error.message
           : "Unknown error checking event creator";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

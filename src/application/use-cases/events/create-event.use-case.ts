@@ -8,6 +8,7 @@ import {
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
 import { CreateEventInput } from "@app/schemas/events/event.schema.js";
 import { Result } from "@shared/types/Result.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 /**
  * Create Event Use Case
@@ -31,7 +32,11 @@ export class CreateEventUseCase {
     );
 
     if (!membershipResult.ok || !membershipResult.data) {
-      return Result.fail("You are not a member of this circle");
+      return Result.fail(
+        "You are not a member of this circle",
+        403,
+        ErrorCode.NOT_CIRCLE_MEMBER
+      );
     }
 
     // Validate time options if provided
@@ -41,7 +46,11 @@ export class CreateEventUseCase {
         const endTime = new Date(option.endTime);
 
         if (endTime <= startTime) {
-          return Result.fail("End time must be after start time");
+          return Result.fail(
+            "End time must be after start time",
+            400,
+            ErrorCode.EVENT_TIME_INVALID
+          );
         }
       }
     }
@@ -95,7 +104,12 @@ export class CreateEventUseCase {
         eventTimes
       );
       if (!createTimesResult.ok) {
-        return Result.fail(createTimesResult.error);
+        return Result.fail(
+          createTimesResult.error,
+          500,
+          createTimesResult.errorCode || ErrorCode.DATABASE_ERROR,
+          createTimesResult.details
+        );
       }
     }
 

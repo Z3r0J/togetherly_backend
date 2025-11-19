@@ -2,6 +2,7 @@ import { Repository } from "typeorm";
 import { EventTime } from "@domain/entities/events/event-time.entity.js";
 import { IEventTimeRepository } from "@domain/ports/event.repository.js";
 import { Result } from "@shared/types/Result.js";
+import { ErrorCode, mapDatabaseError } from "@shared/errors/index.js";
 
 /**
  * Event Time Repository
@@ -21,7 +22,10 @@ export class EventTimeRepository implements IEventTimeRepository {
         error instanceof Error
           ? error.message
           : "Unknown error creating event time";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -37,7 +41,10 @@ export class EventTimeRepository implements IEventTimeRepository {
         error instanceof Error
           ? error.message
           : "Unknown error creating event times";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -55,7 +62,10 @@ export class EventTimeRepository implements IEventTimeRepository {
         error instanceof Error
           ? error.message
           : "Unknown error finding event time";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -74,7 +84,10 @@ export class EventTimeRepository implements IEventTimeRepository {
         error instanceof Error
           ? error.message
           : "Unknown error finding event times";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -124,7 +137,10 @@ export class EventTimeRepository implements IEventTimeRepository {
         error instanceof Error
           ? error.message
           : "Unknown error finding event time with vote count";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -169,7 +185,10 @@ export class EventTimeRepository implements IEventTimeRepository {
         error instanceof Error
           ? error.message
           : "Unknown error finding winning time";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -191,7 +210,10 @@ export class EventTimeRepository implements IEventTimeRepository {
         error instanceof Error
           ? error.message
           : "Unknown error deleting event times";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -210,7 +232,10 @@ export class EventTimeRepository implements IEventTimeRepository {
         error instanceof Error
           ? error.message
           : "Unknown error deleting event time";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

@@ -1,6 +1,7 @@
 import { IEventRepository } from "@domain/ports/event.repository.js";
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/Result.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 /**
  * Delete Event Use Case
@@ -23,7 +24,7 @@ export class DeleteEventUseCase {
     const event = eventResult.data;
 
     if (!event) {
-      return Result.fail("Event not found");
+      return Result.fail("Event not found", 404, ErrorCode.EVENT_NOT_FOUND);
     }
 
     // Check if user can delete
@@ -34,7 +35,11 @@ export class DeleteEventUseCase {
     );
 
     if (!membershipResult.ok || !membershipResult.data) {
-      return Result.fail("You are not a member of this circle");
+      return Result.fail(
+        "You are not a member of this circle",
+        403,
+        ErrorCode.NOT_CIRCLE_MEMBER
+      );
     }
 
     const membership = membershipResult.data;
@@ -42,7 +47,11 @@ export class DeleteEventUseCase {
     const canDelete = isCreator || membership.role === "owner";
 
     if (!canDelete) {
-      return Result.fail("You don't have permission to delete this event");
+      return Result.fail(
+        "You don't have permission to delete this event",
+        403,
+        ErrorCode.INSUFFICIENT_PERMISSIONS
+      );
     }
 
     // Soft delete event

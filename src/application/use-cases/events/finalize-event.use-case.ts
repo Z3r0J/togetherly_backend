@@ -5,6 +5,7 @@ import {
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/Result.js";
 import { Event } from "@domain/entities/events/event.entity.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 /**
  * Finalize Event Use Case
@@ -28,12 +29,16 @@ export class FinalizeEventUseCase {
     const event = eventResult.data;
 
     if (!event) {
-      return Result.fail("Event not found");
+      return Result.fail("Event not found", 404, ErrorCode.EVENT_NOT_FOUND);
     }
 
     // Check event status
     if (event.status === "finalized") {
-      return Result.fail("Event is already finalized");
+      return Result.fail(
+        "Event is already finalized",
+        400,
+        ErrorCode.EVENT_ALREADY_FINALIZED
+      );
     }
 
     // Check permissions (creator or admin)
@@ -44,7 +49,11 @@ export class FinalizeEventUseCase {
     );
 
     if (!membershipResult.ok || !membershipResult.data) {
-      return Result.fail("You are not a member of this circle");
+      return Result.fail(
+        "You are not a member of this circle",
+        403,
+        ErrorCode.NOT_CIRCLE_MEMBER
+      );
     }
 
     const membership = membershipResult.data;
@@ -53,7 +62,11 @@ export class FinalizeEventUseCase {
       isCreator || membership.role === "owner" || membership.role === "admin";
 
     if (!canFinalize) {
-      return Result.fail("You don't have permission to finalize this event");
+      return Result.fail(
+        "You don't have permission to finalize this event",
+        403,
+        ErrorCode.INSUFFICIENT_PERMISSIONS
+      );
     }
 
     // Get winning time (most votes)
@@ -62,13 +75,22 @@ export class FinalizeEventUseCase {
     );
 
     if (!winningTimeResult.ok) {
-      return Result.fail(winningTimeResult.error);
+      return Result.fail(
+        winningTimeResult.error,
+        500,
+        winningTimeResult.errorCode || ErrorCode.DATABASE_ERROR,
+        winningTimeResult.details
+      );
     }
 
     const winningTime = winningTimeResult.data;
 
     if (!winningTime) {
-      return Result.fail("No time options available to finalize");
+      return Result.fail(
+        "No time options available to finalize",
+        400,
+        ErrorCode.EVENT_TIME_REQUIRED
+      );
     }
 
     // Update event with winning time and finalize status

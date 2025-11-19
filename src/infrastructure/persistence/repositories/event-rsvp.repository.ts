@@ -2,6 +2,7 @@ import { Repository } from "typeorm";
 import { EventRsvp } from "@domain/entities/events/event-rsvps.entity.js";
 import { IEventRsvpRepository } from "@domain/ports/event.repository.js";
 import { Result } from "@shared/types/Result.js";
+import { ErrorCode, mapDatabaseError } from "@shared/errors/index.js";
 
 /**
  * Event RSVP Repository
@@ -34,7 +35,15 @@ export class EventRsvpRepository implements IEventRsvpRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error upserting RSVP";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(
+        message,
+        500,
+        errorCode || ErrorCode.RSVP_UPDATE_FAILED,
+        {
+          originalError: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -53,7 +62,10 @@ export class EventRsvpRepository implements IEventRsvpRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error finding RSVP";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -69,7 +81,10 @@ export class EventRsvpRepository implements IEventRsvpRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error finding RSVPs";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -88,7 +103,10 @@ export class EventRsvpRepository implements IEventRsvpRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error counting RSVPs";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -105,7 +123,10 @@ export class EventRsvpRepository implements IEventRsvpRepository {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error deleting RSVP";
-      return Result.fail(message, 500);
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

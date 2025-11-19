@@ -3,6 +3,7 @@ import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
 import { UpdateEventInput } from "@app/schemas/events/event.schema.js";
 import { Result } from "@shared/types/Result.js";
 import { Event } from "@domain/entities/events/event.entity.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 /**
  * Update Event Use Case
@@ -29,7 +30,7 @@ export class UpdateEventUseCase {
     const event = eventResult.data;
 
     if (!event) {
-      return Result.fail("Event not found");
+      return Result.fail("Event not found", 404, ErrorCode.EVENT_NOT_FOUND);
     }
 
     // Check if user can edit
@@ -40,7 +41,11 @@ export class UpdateEventUseCase {
     );
 
     if (!membershipResult.ok || !membershipResult.data) {
-      return Result.fail("You are not a member of this circle");
+      return Result.fail(
+        "You are not a member of this circle",
+        403,
+        ErrorCode.NOT_CIRCLE_MEMBER
+      );
     }
 
     const membership = membershipResult.data;
@@ -49,12 +54,20 @@ export class UpdateEventUseCase {
       isCreator || membership.role === "owner" || membership.role === "admin";
 
     if (!canEdit) {
-      return Result.fail("You don't have permission to edit this event");
+      return Result.fail(
+        "You don't have permission to edit this event",
+        403,
+        ErrorCode.INSUFFICIENT_PERMISSIONS
+      );
     }
 
     // Cannot edit finalized event times
     if (event.status === "finalized" && (input.startsAt || input.endsAt)) {
-      return Result.fail("Cannot change times of finalized event");
+      return Result.fail(
+        "Cannot change times of finalized event",
+        400,
+        ErrorCode.EVENT_ALREADY_FINALIZED
+      );
     }
 
     // Update event

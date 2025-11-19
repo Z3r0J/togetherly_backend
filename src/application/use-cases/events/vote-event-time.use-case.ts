@@ -8,6 +8,7 @@ import {
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
 import { VoteEventTimeInput } from "@app/schemas/events/event.schema.js";
 import { Result } from "@shared/types/Result.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 /**
  * Vote Event Time Use Case
@@ -36,16 +37,24 @@ export class VoteEventTimeUseCase {
     const event = eventResult.data;
 
     if (!event) {
-      return Result.fail("Event not found");
+      return Result.fail("Event not found", 404, ErrorCode.EVENT_NOT_FOUND);
     }
 
     // Check event status
     if (event.status === "finalized") {
-      return Result.fail("Cannot vote on finalized event");
+      return Result.fail(
+        "Cannot vote on finalized event",
+        400,
+        ErrorCode.EVENT_ALREADY_FINALIZED
+      );
     }
 
     if (event.status === "locked") {
-      return Result.fail("Voting is locked for this event");
+      return Result.fail(
+        "Voting is locked for this event",
+        400,
+        ErrorCode.CANNOT_VOTE_LOCKED_EVENT
+      );
     }
 
     // Verify user is member of the circle
@@ -55,7 +64,11 @@ export class VoteEventTimeUseCase {
     );
 
     if (!membershipResult.ok || !membershipResult.data) {
-      return Result.fail("You are not a member of this circle");
+      return Result.fail(
+        "You are not a member of this circle",
+        403,
+        ErrorCode.NOT_CIRCLE_MEMBER
+      );
     }
 
     // Verify time option belongs to this event
@@ -70,7 +83,11 @@ export class VoteEventTimeUseCase {
     const eventTime = eventTimeResult.data;
 
     if (!eventTime || eventTime.eventId !== eventId) {
-      return Result.fail("Invalid time option for this event");
+      return Result.fail(
+        "Invalid time option for this event",
+        400,
+        ErrorCode.EVENT_TIME_NOT_FOUND
+      );
     }
 
     // Remove user's previous vote for this event (if any)
@@ -79,7 +96,12 @@ export class VoteEventTimeUseCase {
       userId
     );
     if (!removeResult.ok) {
-      return Result.fail(removeResult.error);
+      return Result.fail(
+        removeResult.error,
+        500,
+        removeResult.errorCode || ErrorCode.DATABASE_ERROR,
+        removeResult.details
+      );
     }
 
     // Create new vote
@@ -103,7 +125,12 @@ export class VoteEventTimeUseCase {
       eventId
     );
     if (!winningTimeResult.ok) {
-      return Result.fail(winningTimeResult.error);
+      return Result.fail(
+        winningTimeResult.error,
+        500,
+        winningTimeResult.errorCode || ErrorCode.DATABASE_ERROR,
+        winningTimeResult.details
+      );
     }
 
     const winningTime = winningTimeResult.data;

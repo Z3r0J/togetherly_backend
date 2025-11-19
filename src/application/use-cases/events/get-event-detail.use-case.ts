@@ -1,6 +1,7 @@
 import { IEventRepository } from "@domain/ports/event.repository.js";
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/Result.js";
+import { ErrorCode } from "@shared/errors/index.js";
 
 /**
  * Get Event Detail Use Case
@@ -23,7 +24,7 @@ export class GetEventDetailUseCase {
     const event = eventResult.data;
 
     if (!event) {
-      return Result.fail("Event not found");
+      return Result.fail("Event not found", 404, ErrorCode.EVENT_NOT_FOUND);
     }
 
     // Verify user is member of the circle
@@ -33,7 +34,11 @@ export class GetEventDetailUseCase {
     );
 
     if (!membershipResult.ok || !membershipResult.data) {
-      return Result.fail("You are not a member of this circle");
+      return Result.fail(
+        "You are not a member of this circle",
+        403,
+        ErrorCode.NOT_CIRCLE_MEMBER
+      );
     }
 
     const membership = membershipResult.data;
