@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-import { Circle, User } from "..";
+import { Circle, User } from "../index.js";
 
 export interface CircleMember {
   id?: string;

@@ -1,6 +1,6 @@
-import { Credential } from "./credential.entity";
-import { MagicLinkToken } from "./magic-link-token.entity";
-import { OAuth } from "./oauth.entity";
+import { Credential } from "./credential.entity.js";
+import { MagicLinkToken } from "./magic-link-token.entity.js";
+import { OAuth } from "./oauth.entity.js";
 
 /**
  * User Entity

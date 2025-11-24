@@ -9,14 +9,14 @@ import {
   VoteEventTimeUseCase,
   LockEventUseCase,
   FinalizeEventUseCase,
-} from "@app/use-cases/events";
+} from "@app/use-cases/events/index.js";
 import {
   CreateEventSchema,
   UpdateEventSchema,
   VoteEventTimeSchema,
   UpdateRsvpSchema,
   LockEventSchema,
-} from "@app/schemas/events";
+} from "@app/schemas/events/index.js";
 
 /**
  * Event Controller

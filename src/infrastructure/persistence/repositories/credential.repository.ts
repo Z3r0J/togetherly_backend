@@ -1,9 +1,9 @@
-import { Credential } from "@domain/entities";
-import { ICredentialRepository } from "@domain/ports/account.repository";
-import { Result } from "@shared/types";
+import { Credential } from "@domain/entities/index.js";
+import { ICredentialRepository } from "@domain/ports/account.repository.js";
+import { Result } from "@shared/types/index.js";
 import { ErrorCode } from "@shared/errors/index.js";
 import { DataSource, Repository } from "typeorm";
-import { CredentialSchema } from "../schemas/account";
+import { CredentialSchema } from "../schemas/account/index.js";
 
 export class CredentialRepository implements ICredentialRepository {
   private repository: Repository<Credential>;

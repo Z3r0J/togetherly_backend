@@ -1,8 +1,8 @@
 import { DataSource, Repository } from "typeorm";
-import { Result } from "@shared/types";
-import { OAuth, User } from "@domain/entities";
-import { IOAuthAccountRepository } from "@domain/ports/account.repository";
-import { OAuthSchema, UserSchema } from "../schemas/account";
+import { Result } from "@shared/types/index.js";
+import { OAuth, User } from "@domain/entities/index.js";
+import { IOAuthAccountRepository } from "@domain/ports/account.repository.js";
+import { OAuthSchema, UserSchema } from "../schemas/account/index.js";
 
 export class OAuthRepository implements IOAuthAccountRepository {
   private oAuthRepo: Repository<OAuth>;

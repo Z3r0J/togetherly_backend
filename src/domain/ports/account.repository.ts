@@ -1,5 +1,5 @@
-import { MagicLinkToken, User } from "@domain/entities";
-import { Result } from "@shared/types";
+import { MagicLinkToken, User } from "@domain/entities/index.js";
+import { Result } from "@shared/types/index.js";
 
 // User-only
 export interface IUserRepository {

@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-import { User } from "../account/user.entity";
+import { User } from "../account/user.entity.js";
 
 export interface PersonalEvent {
   id?: string;

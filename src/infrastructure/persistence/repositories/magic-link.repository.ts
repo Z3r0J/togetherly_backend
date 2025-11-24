@@ -1,8 +1,8 @@
 import { DataSource, Repository } from "typeorm";
-import { MagicLinkToken } from "@domain/entities";
-import { IMagicLinkRepository } from "@domain/ports/account.repository";
-import { Result } from "@shared/types";
-import { MagicLinkSchema } from "../schemas/account";
+import { MagicLinkToken } from "@domain/entities/index.js";
+import { IMagicLinkRepository } from "@domain/ports/account.repository.js";
+import { Result } from "@shared/types/index.js";
+import { MagicLinkSchema } from "../schemas/account/index.js";
 
 function mapRowToDomain(row: MagicLinkToken): MagicLinkToken {
   return {

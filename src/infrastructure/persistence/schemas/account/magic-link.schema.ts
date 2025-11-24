@@ -1,4 +1,4 @@
-import { MagicLinkToken } from "@domain/entities";
+import { MagicLinkToken } from "@domain/entities/index.js";
 import { EntitySchema } from "typeorm";
 
 export const MagicLinkSchema = new EntitySchema<MagicLinkToken>({

@@ -1,9 +1,9 @@
-import { User } from "@domain/entities";
-import { IUserRepository } from "@domain/ports/account.repository";
-import { Result } from "@shared/types";
+import { User } from "@domain/entities/index.js";
+import { IUserRepository } from "@domain/ports/account.repository.js";
+import { Result } from "@shared/types/index.js";
 import { ErrorCode, mapDatabaseError } from "@shared/errors/index.js";
 import { DataSource, Repository } from "typeorm";
-import { UserSchema } from "../schemas/account";
+import { UserSchema } from "../schemas/account/index.js";
 
 export class UserRepository implements IUserRepository {
   private repository: Repository<User>;

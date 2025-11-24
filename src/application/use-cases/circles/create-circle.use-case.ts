@@ -2,7 +2,7 @@ import {
   ICircleRepository,
   ICircleMemberRepository,
 } from "@domain/ports/circle.repository.js";
-import { Circle, CircleMember } from "@domain/entities";
+import { Circle, CircleMember } from "@domain/entities/index.js";
 import { Result } from "@shared/types/index.js";
 import { ErrorCode } from "@shared/errors/index.js";
 

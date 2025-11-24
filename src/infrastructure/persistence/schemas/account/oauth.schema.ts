@@ -1,5 +1,5 @@
 import { EntitySchema } from "typeorm";
-import { OAuth } from "@domain/entities";
+import { OAuth } from "@domain/entities/index.js";
 
 /**
  * TypeORM schema for OAuth entity

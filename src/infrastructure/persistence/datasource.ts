@@ -5,20 +5,20 @@ import {
   MagicLinkSchema,
   OAuthSchema,
   UserSchema,
-} from "./schemas/account";
-import { CircleSchema, CircleMemberSchema } from "./schemas/circles";
+} from "./schemas/account/index.js";
+import { CircleSchema, CircleMemberSchema } from "./schemas/circles/index.js";
 import {
   EventSchema,
   EventRsvpSchema,
   EventTimeSchema,
   EventTimeVoteSchema,
-} from "./schemas/events";
+} from "./schemas/events/index.js";
 
 /**
  * Create TypeORM DataSource
  */
 export const createDataSource = (env: Env): DataSource => {
-  return new DataSource({
+  const config: any = {
     type: env.DB_TYPE,
     host: env.DB_HOST,
     port: env.DB_PORT,
@@ -41,5 +41,23 @@ export const createDataSource = (env: Env): DataSource => {
     ],
     migrations: [],
     subscribers: [],
-  });
+  };
+
+  // Add PostgreSQL-specific configuration
+  if (env.DB_TYPE === "postgres") {
+    config.ssl = { rejectUnauthorized: false };
+    config.extra = {
+      connectionTimeoutMillis: 90000,
+      statement_timeout: 90000,
+    };
+  }
+
+  // Add MySQL-specific configuration for Aiven
+  if (env.DB_TYPE === "mysql" && env.DB_HOST.includes("aivencloud.com")) {
+    config.ssl = {
+      rejectUnauthorized: false,
+    };
+  }
+
+  return new DataSource(config);
 };

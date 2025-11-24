@@ -1,4 +1,4 @@
-import { Credential } from "@domain/entities";
+import { Credential } from "@domain/entities/index.js";
 import { EntitySchema } from "typeorm";
 
 export const CredentialSchema = new EntitySchema<Credential>({

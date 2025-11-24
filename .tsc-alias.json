@@ -1,0 +1,18 @@
+{
+  "verbose": false,
+  "resolveFullPaths": true,
+  "replacers": {
+    "resolveImports": {
+      "patterns": [
+        "^@app/(.*)$",
+        "^@domain/(.*)$",
+        "^@infra/(.*)$",
+        "^@shared/(.*)$",
+        "^@interfaces/(.*)$"
+      ]
+    },
+    "addJsExtensions": {
+      "patterns": ["**/*.js"]
+    }
+  }
+}

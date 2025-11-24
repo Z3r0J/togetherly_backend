@@ -10,8 +10,8 @@ import {
   ValidateMagicLinkResult,
   ValidateEmailVerificationUseCase,
   ValidateEmailVerificationResult,
-} from "@app/use-cases";
-import { Result } from "@shared/types";
+} from "@app/use-cases/index.js";
+import { Result } from "@shared/types/index.js";
 import { Response, Request, NextFunction } from "express";
 
 export class AccountController {

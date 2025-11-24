@@ -1,5 +1,5 @@
 import z from "zod";
-import { uuidSchema } from "../helper.schema";
+import { uuidSchema } from "../helper.schema.js";
 
 export const setCredentialSchema = z.object({
   userId: uuidSchema,

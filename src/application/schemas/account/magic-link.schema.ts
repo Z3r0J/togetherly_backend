@@ -1,5 +1,5 @@
 import z from "zod";
-import { emailSchema, toDate, uuidSchema } from "../helper.schema";
+import { emailSchema, toDate, uuidSchema } from "../helper.schema.js";
 
 // Usuario solicita un magic link por email
 export const requestMagicLinkSchema = z.object({

@@ -4,7 +4,7 @@ import {
   oauthProviderSchema,
   toDate,
   uuidSchema,
-} from "../helper.schema";
+} from "../helper.schema.js";
 
 /**
  * Schema for OAuth account creation

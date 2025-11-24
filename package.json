@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch --tsconfig tsconfig.json src/index.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node build/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -25,10 +25,12 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.5",
     "nodemailer": "^7.0.10",
+    "pg": "^8.16.3",
     "typeorm": "^0.3.20",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -39,6 +41,7 @@
     "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.16.0",
     "supertest": "^7.0.0",
+    "tsc-alias": "^1.8.10",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite-tsconfig-paths": "^5.1.4",

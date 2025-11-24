@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { emailSchema, toDate } from "../helper.schema";
+import { emailSchema, toDate } from "../helper.schema.js";
 
 /**
  * Schema for login an user using email and password

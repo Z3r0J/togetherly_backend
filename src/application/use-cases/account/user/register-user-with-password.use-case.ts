@@ -1,9 +1,9 @@
-import { createUserSchema } from "@app/schemas";
+import { createUserSchema } from "@app/schemas/index.js";
 import {
   ICredentialRepository,
   IUserRepository,
-} from "@domain/ports/account.repository";
-import { Result } from "@shared/types";
+} from "@domain/ports/account.repository.js";
+import { Result } from "@shared/types/index.js";
 import { ErrorCode } from "@shared/errors/index.js";
 
 type Deps = {
