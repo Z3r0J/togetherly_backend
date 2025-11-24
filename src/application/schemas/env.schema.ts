@@ -53,6 +53,10 @@ export const envSchema = z.object({
 
   // App Configuration
   APP_URL: z.string().url().default("http://localhost:3000"),
+
+  // Firebase Cloud Messaging Configuration (optional)
+  FIREBASE_SERVICE_ACCOUNT_PATH: z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

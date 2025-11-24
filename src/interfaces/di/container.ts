@@ -38,6 +38,13 @@ import {
   FinalizeEventUseCase,
 } from "@app/use-cases/events/index.js";
 import {
+  CreatePersonalEventUseCase,
+  UpdatePersonalEventUseCase,
+  DeletePersonalEventUseCase,
+  ListPersonalEventsUseCase,
+  GetPersonalEventDetailUseCase,
+} from "@app/use-cases/calendar/index.js";
+import {
   ICredentialRepository,
   IMagicLinkRepository,
   IOAuthAccountRepository,
@@ -54,6 +61,13 @@ import {
   IEventTimeRepository,
   IEventTimeVoteRepository,
 } from "@domain/ports/event.repository.js";
+import { IPersonalEventRepository } from "@domain/ports/calendar.repository.js";
+import {
+  INotificationRepository,
+  IDeviceTokenRepository,
+  IOutboxRepository,
+  INotificationService,
+} from "@domain/ports/notification.repository.js";
 import { UserRepository } from "@infra/persistence/index.js";
 import { CredentialRepository } from "@infra/persistence/repositories/credential.repository.js";
 import { OAuthRepository } from "@infra/persistence/repositories/oauth.repository.js";
@@ -65,17 +79,28 @@ import { EventRepository } from "@infra/persistence/repositories/event.repositor
 import { EventRsvpRepository } from "@infra/persistence/repositories/event-rsvp.repository.js";
 import { EventTimeRepository } from "@infra/persistence/repositories/event-time.repository.js";
 import { EventTimeVoteRepository } from "@infra/persistence/repositories/event-time-vote.repository.js";
+import { PersonalEventRepository } from "@infra/persistence/repositories/personal-event.repository.js";
+import { NotificationRepository } from "@infra/persistence/repositories/notification.repository.js";
+import { DeviceTokenRepository } from "@infra/persistence/repositories/device-token.repository.js";
+import { OutboxRepository } from "@infra/persistence/repositories/outbox.repository.js";
 import { AccountController } from "@interfaces/http/controllers/account.controller.js";
 import { CircleController } from "@interfaces/http/controllers/circle.controller.js";
 import { EventController } from "@interfaces/http/controllers/event.controller.js";
+import { CalendarController } from "@interfaces/http/controllers/calendar.controller.js";
+import { NotificationController } from "@interfaces/http/controllers/notification.controller.js";
 import {
   BcryptHashService,
   JwtTokenService,
   NodemailerService,
   SystemClock,
+  FcmNotificationService,
+  OutboxProcessorService,
   type JwtConfig,
   type MailerConfig,
+  type FcmConfig,
+  type OutboxProcessorConfig,
 } from "@infra/services/index.js";
+import { NotificationTemplateService } from "@app/services/notification-template.service.js";
 import { validateEnv } from "@app/schemas/env.schema.js";
 
 /**
@@ -94,16 +119,25 @@ export class DIContainer {
   private static eventRsvpRepository: IEventRsvpRepository;
   private static eventTimeRepository: IEventTimeRepository;
   private static eventTimeVoteRepository: IEventTimeVoteRepository;
+  private static personalEventRepository: IPersonalEventRepository;
+  private static notificationRepository: INotificationRepository;
+  private static deviceTokenRepository: IDeviceTokenRepository;
+  private static outboxRepository: IOutboxRepository;
 
   // Services
   private static hashService: IHashService;
   private static tokenService: ITokenService;
   private static mailerService: IMailerService;
   private static clockService: IClock;
+  private static notificationService: INotificationService;
+  private static notificationTemplateService: NotificationTemplateService;
+  private static outboxProcessorService: OutboxProcessorService;
 
   private static accountController: AccountController;
   private static circleController: CircleController;
   private static eventController: EventController;
+  private static calendarController: CalendarController;
+  private static notificationController: NotificationController;
 
   /**
    * Initialize the container with core dependencies
@@ -138,6 +172,14 @@ export class DIContainer {
       dataSource.getRepository("EventTimeVote")
     );
 
+    // Personal Event Repository
+    this.personalEventRepository = new PersonalEventRepository(dataSource);
+
+    // Notification Repositories
+    this.notificationRepository = new NotificationRepository(dataSource);
+    this.deviceTokenRepository = new DeviceTokenRepository(dataSource);
+    this.outboxRepository = new OutboxRepository(dataSource);
+
     // Services
     this.hashService = new BcryptHashService(env.BCRYPT_SALT_ROUNDS);
     this.clockService = new SystemClock();
@@ -169,6 +211,35 @@ export class DIContainer {
       appUrl: env.APP_URL,
     };
     this.mailerService = new NodemailerService(mailerConfig, logger);
+
+    // Notification Services
+    // Template Service
+    this.notificationTemplateService = new NotificationTemplateService();
+
+    // FCM Service
+    const fcmConfig: FcmConfig = {
+      serviceAccountPath: env.FIREBASE_SERVICE_ACCOUNT_PATH,
+      serviceAccountJson: env.FIREBASE_SERVICE_ACCOUNT_JSON,
+    };
+    this.notificationService = new FcmNotificationService(
+      fcmConfig,
+      this.deviceTokenRepository,
+      logger
+    );
+
+    // Outbox Processor Service
+    const outboxConfig: OutboxProcessorConfig = {
+      pollingIntervalMs: 5000, // Poll every 5 seconds
+      maxRetries: 3,
+      batchSize: 10,
+    };
+    this.outboxProcessorService = new OutboxProcessorService(
+      this.outboxRepository,
+      this.notificationRepository,
+      this.notificationService,
+      logger,
+      outboxConfig
+    );
 
     // Account Use Cases
     const loginWithPasswordUseCase = new LoginWithPasswordUseCase({
@@ -282,7 +353,9 @@ export class DIContainer {
     const createEventUseCase = new CreateEventUseCase(
       this.eventRepository,
       this.eventTimeRepository,
-      this.circleMemberRepository
+      this.circleMemberRepository,
+      this.eventRsvpRepository,
+      this.personalEventRepository
     );
 
     const getEventDetailUseCase = new GetEventDetailUseCase(
@@ -322,7 +395,9 @@ export class DIContainer {
     const finalizeEventUseCase = new FinalizeEventUseCase(
       this.eventRepository,
       this.eventTimeRepository,
-      this.circleMemberRepository
+      this.circleMemberRepository,
+      this.eventRsvpRepository,
+      this.personalEventRepository
     );
 
     // Controllers
@@ -359,6 +434,41 @@ export class DIContainer {
       lockEventUseCase,
       finalizeEventUseCase
     );
+
+    // Personal Event / Calendar Use Cases
+    const createPersonalEventUseCase = new CreatePersonalEventUseCase({
+      personalEventRepo: this.personalEventRepository,
+    });
+
+    const updatePersonalEventUseCase = new UpdatePersonalEventUseCase({
+      personalEventRepo: this.personalEventRepository,
+    });
+
+    const deletePersonalEventUseCase = new DeletePersonalEventUseCase({
+      personalEventRepo: this.personalEventRepository,
+    });
+
+    const listPersonalEventsUseCase = new ListPersonalEventsUseCase({
+      personalEventRepo: this.personalEventRepository,
+    });
+
+    const getPersonalEventDetailUseCase = new GetPersonalEventDetailUseCase({
+      personalEventRepo: this.personalEventRepository,
+    });
+
+    this.calendarController = new CalendarController(
+      createPersonalEventUseCase,
+      updatePersonalEventUseCase,
+      deletePersonalEventUseCase,
+      listPersonalEventsUseCase,
+      getPersonalEventDetailUseCase
+    );
+
+    // Notification Controller
+    this.notificationController = new NotificationController(
+      this.notificationRepository,
+      this.deviceTokenRepository
+    );
   }
 
   // Static methods to get instances
@@ -381,6 +491,20 @@ export class DIContainer {
       throw new Error("Container not initialized. Call initialize() first.");
     }
     return this.eventController;
+  }
+
+  static getCalendarController(): CalendarController {
+    if (!this.calendarController) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.calendarController;
+  }
+
+  static getNotificationController(): NotificationController {
+    if (!this.notificationController) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.notificationController;
   }
 
   // Service getters
@@ -410,6 +534,20 @@ export class DIContainer {
       throw new Error("Container not initialized. Call initialize() first.");
     }
     return this.clockService;
+  }
+
+  static getOutboxProcessorService(): OutboxProcessorService {
+    if (!this.outboxProcessorService) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.outboxProcessorService;
+  }
+
+  static getNotificationTemplateService(): NotificationTemplateService {
+    if (!this.notificationTemplateService) {
+      throw new Error("Container not initialized. Call initialize() first.");
+    }
+    return this.notificationTemplateService;
   }
 
   // Repository getters for advanced use cases (if needed)

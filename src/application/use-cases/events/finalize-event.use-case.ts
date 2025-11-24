@@ -1,8 +1,11 @@
 import {
   IEventRepository,
   IEventTimeRepository,
+  IEventRsvpRepository,
 } from "@domain/ports/event.repository.js";
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
+import { IPersonalEventRepository } from "@domain/ports/calendar.repository.js";
+import { EventRsvp } from "@domain/entities/events/event-rsvps.entity.js";
 import { Result } from "@shared/types/Result.js";
 import { Event } from "@domain/entities/events/event.entity.js";
 import { ErrorCode } from "@shared/errors/index.js";
@@ -15,7 +18,9 @@ export class FinalizeEventUseCase {
   constructor(
     private readonly eventRepository: IEventRepository,
     private readonly eventTimeRepository: IEventTimeRepository,
-    private readonly circleMemberRepository: ICircleMemberRepository
+    private readonly circleMemberRepository: ICircleMemberRepository,
+    private readonly eventRsvpRepository: IEventRsvpRepository,
+    private readonly personalEventRepository: IPersonalEventRepository
   ) {}
 
   async execute(userId: string, eventId: string): Promise<Result<Event>> {
@@ -105,6 +110,62 @@ export class FinalizeEventUseCase {
       return updatedEventResult;
     }
 
+    // Check for conflicts and auto-RSVP members with conflicts
+    await this.handleConflictBasedRsvp(
+      eventId,
+      event.circleId,
+      event.startsAt!,
+      event.endsAt!
+    );
+
     return Result.ok(updatedEventResult.data);
+  }
+
+  /**
+   * Check all circle members for personal calendar conflicts
+   * and auto-RSVP them as "not going" if conflicts exist
+   */
+  private async handleConflictBasedRsvp(
+    eventId: string,
+    circleId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<void> {
+    // Get all circle members
+    const membersResult = await this.circleMemberRepository.listCircleMembers(
+      circleId
+    );
+
+    if (!membersResult.ok || !membersResult.data) {
+      return; // Silently fail, don't block event finalization
+    }
+
+    const members = membersResult.data;
+
+    // Check each member for conflicts
+    for (const member of members) {
+      const conflictResult = await this.personalEventRepository.checkOverlap(
+        member.userId,
+        startTime,
+        endTime
+      );
+
+      if (
+        conflictResult.ok &&
+        conflictResult.data &&
+        conflictResult.data.length > 0
+      ) {
+        // Member has conflicts, auto-RSVP as "not going"
+        const rsvp: EventRsvp = {
+          eventId,
+          userId: member.userId,
+          status: "not going",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        await this.eventRsvpRepository.upsert(rsvp);
+      }
+    }
   }
 }

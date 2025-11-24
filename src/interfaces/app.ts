@@ -10,6 +10,8 @@ import {
   createAccountRoutes,
   createCircleRoutes,
   createEventRoutes,
+  createCalendarRoutes,
+  createNotificationRoutes,
 } from "./http/routes/index.js";
 
 /**
@@ -50,6 +52,8 @@ export class App {
     const accountController = DIContainer.getAccountController();
     const circleController = DIContainer.getCircleController();
     const eventController = DIContainer.getEventController();
+    const calendarController = DIContainer.getCalendarController();
+    const notificationController = DIContainer.getNotificationController();
     const tokenService = DIContainer.getTokenService();
 
     // Register routes
@@ -69,6 +73,16 @@ export class App {
       apiKeyMiddleware,
       createEventRoutes(eventController, tokenService)
     );
+    this.app.use(
+      "/api/calendar",
+      apiKeyMiddleware,
+      createCalendarRoutes(calendarController, tokenService)
+    );
+    this.app.use(
+      "/api/notifications",
+      apiKeyMiddleware,
+      createNotificationRoutes(notificationController, tokenService)
+    );
   }
 
   private setupErrorHandling(): void {
@@ -77,6 +91,11 @@ export class App {
 
   async start(): Promise<void> {
     const port = this.env.PORT;
+
+    // Start the outbox processor for notifications
+    const outboxProcessor = DIContainer.getOutboxProcessorService();
+    outboxProcessor.start();
+    this.logger.info("📬 Outbox processor started");
 
     return new Promise((resolve) => {
       this.app.listen(port, () => {
@@ -87,6 +106,19 @@ export class App {
         resolve();
       });
     });
+  }
+
+  async shutdown(): Promise<void> {
+    // Stop the outbox processor
+    const outboxProcessor = DIContainer.getOutboxProcessorService();
+    outboxProcessor.stop();
+    this.logger.info("📬 Outbox processor stopped");
+
+    // Close database connection
+    if (this.dataSource.isInitialized) {
+      await this.dataSource.destroy();
+      this.logger.info("🔌 Database connection closed");
+    }
   }
 
   getExpressApp(): Express {

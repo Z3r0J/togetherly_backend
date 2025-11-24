@@ -104,6 +104,7 @@ export function getErrorMessage(errorCode: ErrorCode): string {
   const messages: Record<ErrorCode, string> = {
     // Auth errors
     [ErrorCode.UNAUTHORIZED]: "You are not authorized to perform this action",
+    [ErrorCode.FORBIDDEN]: "Access forbidden",
     [ErrorCode.INVALID_CREDENTIALS]: "Invalid email or password",
     [ErrorCode.INVALID_TOKEN]: "Invalid authentication token",
     [ErrorCode.TOKEN_EXPIRED]: "Your session has expired",
@@ -159,6 +160,21 @@ export function getErrorMessage(errorCode: ErrorCode): string {
     [ErrorCode.MEMBER_ADD_FAILED]: "Failed to add member",
     [ErrorCode.MEMBER_REMOVE_FAILED]: "Failed to remove member",
     [ErrorCode.MEMBER_UPDATE_FAILED]: "Failed to update member",
+    [ErrorCode.CIRCLE_MEMBER_PERMISSION_DENIED]:
+      "You don't have permission to perform this action",
+    [ErrorCode.CIRCLE_MEMBER_ALREADY_EXISTS]:
+      "User is already a member of this circle",
+
+    // Circle Invitations
+    [ErrorCode.INVITATION_NOT_FOUND]: "Invitation not found",
+    [ErrorCode.INVITATION_EXPIRED]: "Invitation has expired",
+    [ErrorCode.INVITATION_ALREADY_ACCEPTED]: "Invitation already accepted",
+    [ErrorCode.INVITATION_ALREADY_DECLINED]: "Invitation already declined",
+    [ErrorCode.INVITATION_EMAIL_MISMATCH]: "Invitation email mismatch",
+    [ErrorCode.INVITATION_LIMIT_REACHED]: "Invitation limit reached",
+    [ErrorCode.INVITATION_ALREADY_EXISTS]: "Invitation already exists",
+    [ErrorCode.INVITATION_CREATE_FAILED]: "Failed to create invitation",
+    [ErrorCode.INVITATION_SEND_FAILED]: "Failed to send invitation",
 
     // Events
     [ErrorCode.EVENT_NOT_FOUND]: "Event not found",
@@ -199,6 +215,15 @@ export function getErrorMessage(errorCode: ErrorCode): string {
     [ErrorCode.CANNOT_VOTE_LOCKED_EVENT]: "Cannot vote on a locked event",
     [ErrorCode.ALREADY_VOTED]: "You have already voted",
 
+    // Personal Calendar
+    [ErrorCode.PERSONAL_EVENT_NOT_FOUND]: "Personal event not found",
+    [ErrorCode.PERSONAL_EVENT_CREATE_FAILED]: "Failed to create personal event",
+    [ErrorCode.PERSONAL_EVENT_UPDATE_FAILED]: "Failed to update personal event",
+    [ErrorCode.PERSONAL_EVENT_DELETE_FAILED]: "Failed to delete personal event",
+    [ErrorCode.PERSONAL_EVENT_TIME_CONFLICT]:
+      "This time conflicts with an existing event",
+    [ErrorCode.PERSONAL_EVENT_INVALID_TIME]: "Invalid event time",
+
     // Validation
     [ErrorCode.VALIDATION_FAILED]: "Validation failed",
     [ErrorCode.INVALID_INPUT]: "Invalid input",
@@ -224,18 +249,30 @@ export function getErrorMessage(errorCode: ErrorCode): string {
     [ErrorCode.INTERNAL_SERVER_ERROR]: "Internal server error",
     [ErrorCode.SERVICE_UNAVAILABLE]: "Service temporarily unavailable",
     [ErrorCode.NOT_FOUND]: "Resource not found",
+    [ErrorCode.RESOURCE_NOT_FOUND]: "Resource not found",
     [ErrorCode.NOT_IMPLEMENTED]: "Feature not implemented yet",
     [ErrorCode.RATE_LIMIT_EXCEEDED]:
       "Too many requests. Please try again later",
     [ErrorCode.REQUEST_TIMEOUT]: "Request timeout",
     [ErrorCode.PAYLOAD_TOO_LARGE]: "Request payload too large",
     [ErrorCode.UNKNOWN_ERROR]: "An unknown error occurred",
+    [ErrorCode.VALIDATION_ERROR]: "Validation error",
+    [ErrorCode.INVALID_REQUEST]: "Invalid request",
+    [ErrorCode.MISSING_REQUIRED_FIELD]: "Missing required field",
 
     // External services
     [ErrorCode.EMAIL_SERVICE_ERROR]: "Email service error",
     [ErrorCode.EMAIL_SEND_FAILED]: "Failed to send email",
     [ErrorCode.STORAGE_SERVICE_ERROR]: "Storage service error",
     [ErrorCode.EXTERNAL_API_ERROR]: "External API error",
+
+    // Notifications
+    [ErrorCode.NOTIFICATION_NOT_FOUND]: "Notification not found",
+    [ErrorCode.NOTIFICATION_SEND_FAILED]: "Failed to send notification",
+    [ErrorCode.DEVICE_TOKEN_INVALID]: "Invalid device token",
+    [ErrorCode.OUTBOX_PROCESSING_FAILED]: "Failed to process outbox event",
+    [ErrorCode.NOTIFICATION_ACCESS_DENIED]:
+      "Access denied to this notification",
   };
 
   return messages[errorCode] || "An error occurred";

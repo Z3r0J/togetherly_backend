@@ -5,3 +5,5 @@ export * from "./mailer.port.js";
 export * from "./clock.port.js";
 export * from "./account.repository.js";
 export * from "./event.repository.js";
+export * from "./calendar.repository.js";
+export * from "./notification.repository.js";

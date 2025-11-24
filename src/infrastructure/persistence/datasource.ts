@@ -17,6 +17,12 @@ import {
   EventTimeSchema,
   EventTimeVoteSchema,
 } from "./schemas/events/index.js";
+import { PersonalEventSchema } from "./schemas/calendar/index.js";
+import {
+  NotificationSchema,
+  DeviceTokenSchema,
+  OutboxEventSchema,
+} from "./schemas/notifications/index.js";
 
 /**
  * Create TypeORM DataSource
@@ -43,6 +49,10 @@ export const createDataSource = (env: Env): DataSource => {
       EventRsvpSchema,
       EventTimeSchema,
       EventTimeVoteSchema,
+      PersonalEventSchema,
+      NotificationSchema,
+      DeviceTokenSchema,
+      OutboxEventSchema,
     ],
     migrations: [],
     subscribers: [],

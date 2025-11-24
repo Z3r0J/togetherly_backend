@@ -12,3 +12,8 @@ export * from "./events/event.entity.js";
 export * from "./events/event-rsvps.entity.js";
 export * from "./events/event-time.entity.js";
 export * from "./events/event-time-votes.entity.js";
+
+// Notification entities
+export * from "./notifications/notification.entity.js";
+export * from "./notifications/device-token.entity.js";
+export * from "./notifications/outbox-event.entity.js";
