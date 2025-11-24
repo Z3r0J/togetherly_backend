@@ -6,8 +6,18 @@ import {
   IEventTimeRepository,
   IEventRsvpRepository,
 } from "@domain/ports/event.repository.js";
-import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
+import {
+  ICircleMemberRepository,
+  ICircleRepository,
+} from "@domain/ports/circle.repository.js";
 import { IPersonalEventRepository } from "@domain/ports/calendar.repository.js";
+import { IUserRepository } from "@domain/ports/account.repository.js";
+import {
+  INotificationRepository,
+  IOutboxRepository,
+} from "@domain/ports/notification.repository.js";
+import { NotificationTemplateService } from "@app/services/notification-template.service.js";
+import { createOutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
 import { EventRsvp } from "@domain/entities/events/event-rsvps.entity.js";
 import { CreateEventInput } from "@app/schemas/events/event.schema.js";
 import { Result } from "@shared/types/Result.js";
@@ -22,8 +32,13 @@ export class CreateEventUseCase {
     private readonly eventRepository: IEventRepository,
     private readonly eventTimeRepository: IEventTimeRepository,
     private readonly circleMemberRepository: ICircleMemberRepository,
+    private readonly circleRepository: ICircleRepository,
     private readonly eventRsvpRepository: IEventRsvpRepository,
-    private readonly personalEventRepository: IPersonalEventRepository
+    private readonly personalEventRepository: IPersonalEventRepository,
+    private readonly userRepository: IUserRepository,
+    private readonly notificationRepository: INotificationRepository,
+    private readonly outboxRepository: IOutboxRepository,
+    private readonly notificationTemplateService: NotificationTemplateService
   ) {}
 
   async execute(
@@ -124,9 +139,92 @@ export class CreateEventUseCase {
         savedEvent.startsAt,
         savedEvent.endsAt
       );
+
+      // Notify circle members about the new event
+      await this.notifyCircleMembers(savedEvent);
     }
 
     return Result.ok(savedEvent);
+  }
+
+  /**
+   * Notify circle members with event_invitation notification
+   */
+  private async notifyCircleMembers(event: Event): Promise<void> {
+    try {
+      // Get all circle members
+      const membersResult = await this.circleMemberRepository.listCircleMembers(
+        event.circleId
+      );
+
+      if (!membersResult.ok || !membersResult.data) {
+        return; // Silently fail
+      }
+
+      const members = membersResult.data;
+
+      // Fetch circle and inviter details
+      const circleResult = await this.circleRepository.findById(event.circleId);
+      const inviterResult = await this.userRepository.findById(event.userId);
+
+      if (
+        !circleResult.ok ||
+        !circleResult.data ||
+        !inviterResult.ok ||
+        !inviterResult.data
+      ) {
+        return; // Silently fail
+      }
+
+      const circle = circleResult.data;
+      const inviterName = inviterResult.data.name || "Someone";
+
+      // Create notifications for all members except the creator
+      const notifications = members
+        .filter((member) => member.userId !== event.userId)
+        .map((member) =>
+          this.notificationTemplateService.createEventInvitation(
+            member.userId,
+            { name: inviterName },
+            event,
+            circle
+          )
+        );
+
+      if (notifications.length === 0) {
+        return; // No one to notify
+      }
+
+      // Batch create notifications
+      const notificationResult = await this.notificationRepository.createBatch(
+        notifications
+      );
+
+      if (!notificationResult.ok) {
+        return; // Silently fail
+      }
+
+      const savedNotifications = notificationResult.data;
+
+      // Create outbox events for immediate push notifications
+      for (const notification of savedNotifications) {
+        const pushEvent = createOutboxEvent({
+          aggregateType: "event",
+          aggregateId: event.id!,
+          eventType: "notification.push",
+          maxRetries: 3,
+          payload: {
+            notificationId: notification.id!,
+            userId: notification.userId,
+          },
+        });
+
+        await this.outboxRepository.create(pushEvent);
+      }
+    } catch (error) {
+      // Silently fail to not block event creation
+      console.error("Error notifying circle members:", error);
+    }
   }
 
   /**
@@ -149,6 +247,21 @@ export class CreateEventUseCase {
     }
 
     const members = membersResult.data;
+
+    // Get event and circle for notifications
+    const eventResult = await this.eventRepository.findById(eventId);
+    const circleResult = await this.circleRepository.findById(circleId);
+
+    if (
+      !eventResult.ok ||
+      !eventResult.data ||
+      !circleResult.ok ||
+      !circleResult.data
+    ) {
+      return; // Silently fail
+    }
+
+    const event = eventResult.data;
 
     // Check each member for conflicts
     for (const member of members) {
@@ -173,6 +286,40 @@ export class CreateEventUseCase {
         };
 
         await this.eventRsvpRepository.upsert(rsvp);
+
+        // Send conflict detection notification
+        try {
+          const conflictingEvent = conflictResult.data[0];
+          const notification =
+            this.notificationTemplateService.createConflictDetection(
+              member.userId,
+              { id: event.id!, title: event.title },
+              { id: conflictingEvent.id!, title: conflictingEvent.title }
+            );
+
+          const notificationResult = await this.notificationRepository.create(
+            notification
+          );
+
+          if (notificationResult.ok) {
+            // Create outbox event for immediate push
+            const pushEvent = createOutboxEvent({
+              aggregateType: "event",
+              aggregateId: eventId,
+              eventType: "notification.push",
+              maxRetries: 3,
+              payload: {
+                notificationId: notificationResult.data.id!,
+                userId: member.userId,
+              },
+            });
+
+            await this.outboxRepository.create(pushEvent);
+          }
+        } catch (error) {
+          // Silently fail notification, don't block RSVP
+          console.error("Error sending conflict notification:", error);
+        }
       }
     }
   }

@@ -3,6 +3,8 @@ import {
   IMagicLinkRepository,
 } from "@domain/ports/account.repository.js";
 import { IMailerService } from "@domain/ports/mailer.port.js";
+import { IOutboxRepository } from "@domain/ports/notification.repository.js";
+import { createOutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
 import { IClock } from "@domain/ports/clock.port.js";
 import { Result } from "@shared/types/index.js";
 import { randomBytes } from "crypto";
@@ -15,6 +17,7 @@ export type RequestMagicLinkDependencies = {
   userRepo: IUserRepository;
   magicLinkRepo: IMagicLinkRepository;
   mailer: IMailerService;
+  outboxRepo?: IOutboxRepository;
   clock: IClock;
   tokenExpiryMinutes?: number; // Default: 15 minutes
 };
@@ -74,11 +77,31 @@ export class RequestMagicLinkUseCase {
 
     // Send magic link email
     try {
-      await this.deps.mailer.sendMagicLinkEmail(email, token);
+      // Use outbox pattern if available, otherwise fallback to direct email
+      if (this.deps.outboxRepo) {
+        const emailEvent = createOutboxEvent({
+          aggregateType: "user",
+          aggregateId: user.id!,
+          eventType: "email.magic_link",
+          maxRetries: 3,
+          payload: {
+            email,
+            token,
+          },
+        });
+        await this.deps.outboxRepo.create(emailEvent);
+      } else {
+        // Fallback to synchronous email
+        await this.deps.mailer.sendMagicLinkEmail(email, token);
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to send email";
-      return Result.fail(message, 500);
+      // Don't fail the request if using outbox, it will retry
+      if (!this.deps.outboxRepo) {
+        return Result.fail(message, 500);
+      }
+      console.error("Failed to create outbox event for magic link:", error);
     }
 
     return Result.ok(undefined, 200);

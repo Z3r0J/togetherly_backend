@@ -1,8 +1,15 @@
 import {
   ICircleInvitationRepository,
   ICircleMemberRepository,
+  ICircleRepository,
 } from "@domain/ports/circle.repository.js";
 import { IUserRepository } from "@domain/ports/account.repository.js";
+import {
+  INotificationRepository,
+  IOutboxRepository,
+} from "@domain/ports/notification.repository.js";
+import { NotificationTemplateService } from "@app/services/notification-template.service.js";
+import { createOutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
 import { CircleMember } from "@domain/entities/circles/circle-members.entity.js";
 import { Result } from "@shared/types/index.js";
 import { ErrorCode } from "@shared/errors/index.js";
@@ -22,7 +29,11 @@ export type AcceptCircleInvitationResult = {
 export type AcceptCircleInvitationDependencies = {
   invitationRepo: ICircleInvitationRepository;
   circleMemberRepo: ICircleMemberRepository;
+  circleRepo: ICircleRepository;
   userRepo: IUserRepository;
+  notificationRepo: INotificationRepository;
+  outboxRepo: IOutboxRepository;
+  notificationTemplateService: NotificationTemplateService;
 };
 
 /**
@@ -139,6 +150,9 @@ export class AcceptCircleInvitationUseCase {
       new Date()
     );
 
+    // Notify circle owner about new member
+    await this.notifyCircleOwner(invitation.circleId, userId);
+
     const result: AcceptCircleInvitationResult = {
       circleId: invitation.circleId,
       circleName: invitation.circle?.name || "Circle",
@@ -146,5 +160,64 @@ export class AcceptCircleInvitationUseCase {
     };
 
     return Result.ok(result, 200);
+  }
+
+  /**
+   * Notify circle owner when new member joins
+   */
+  private async notifyCircleOwner(
+    circleId: string,
+    newMemberId: string
+  ): Promise<void> {
+    try {
+      // Get circle details
+      const circleResult = await this.deps.circleRepo.findById(circleId);
+      if (!circleResult.ok || !circleResult.data) {
+        return; // Silently fail
+      }
+
+      const circle = circleResult.data;
+
+      // Get new member name
+      const memberResult = await this.deps.userRepo.findById(newMemberId);
+      if (!memberResult.ok || !memberResult.data) {
+        return; // Silently fail
+      }
+
+      const member = memberResult.data;
+
+      // Create notification for circle owner
+      const notification =
+        this.deps.notificationTemplateService.createMemberJoined(
+          circle.ownerId,
+          member,
+          circle
+        );
+
+      const notificationResult = await this.deps.notificationRepo.create(
+        notification
+      );
+
+      if (!notificationResult.ok) {
+        return; // Silently fail
+      }
+
+      // Create outbox event for immediate push
+      const pushEvent = createOutboxEvent({
+        aggregateType: "circle",
+        aggregateId: circleId,
+        eventType: "notification.push",
+        maxRetries: 3,
+        payload: {
+          notificationId: notificationResult.data.id!,
+          userId: circle.ownerId,
+        },
+      });
+
+      await this.deps.outboxRepo.create(pushEvent);
+    } catch (error) {
+      // Silently fail to not block member addition
+      console.error("Error notifying circle owner:", error);
+    }
   }
 }

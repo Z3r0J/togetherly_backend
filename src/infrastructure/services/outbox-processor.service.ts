@@ -1,6 +1,7 @@
 import { IOutboxRepository } from "@domain/ports/notification.repository.js";
 import { INotificationRepository } from "@domain/ports/notification.repository.js";
 import { INotificationService } from "@domain/ports/notification.repository.js";
+import { IMailerService } from "@domain/ports/mailer.port.js";
 import { ILogger } from "@domain/ports/logger.port.js";
 import { OutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
 
@@ -23,6 +24,7 @@ export class OutboxProcessorService {
     private outboxRepository: IOutboxRepository,
     private notificationRepository: INotificationRepository,
     private notificationService: INotificationService,
+    private mailerService: IMailerService,
     private logger: ILogger,
     private config: OutboxProcessorConfig = {
       pollingIntervalMs: 5000,
@@ -139,9 +141,19 @@ export class OutboxProcessorService {
           await this.handleNotificationReminder(event);
           break;
 
-        case "notification.email":
         case "email.invitation":
+          await this.handleEmailInvitation(event);
+          break;
+
         case "email.magic_link":
+          await this.handleEmailMagicLink(event);
+          break;
+
+        case "email.verification":
+          await this.handleEmailVerification(event);
+          break;
+
+        case "notification.email":
         case "rsvp.auto_create":
           // These event types are handled by other processors
           this.logger.info(`Skipping event type ${event.eventType}`);
@@ -244,6 +256,68 @@ export class OutboxProcessorService {
   private async handleNotificationReminder(event: OutboxEvent): Promise<void> {
     // Same as push for now - could add reminder-specific logic
     await this.handleNotificationPush(event);
+  }
+
+  /**
+   * Handle email invitation event
+   * Payload: { inviterName: string, circleName: string, email: string, token: string, isRegistered: boolean }
+   */
+  private async handleEmailInvitation(event: OutboxEvent): Promise<void> {
+    const { inviterName, circleName, email, token, isRegistered } =
+      event.payload as {
+        inviterName: string;
+        circleName: string;
+        email: string;
+        token: string;
+        isRegistered: boolean;
+      };
+
+    // Send invitation email
+    await this.mailerService.sendCircleInvitationEmail(
+      inviterName,
+      circleName,
+      email,
+      token,
+      isRegistered
+    );
+
+    this.logger.info(`Sent invitation email to ${email}`, {
+      circleName,
+      inviterName,
+    });
+  }
+
+  /**
+   * Handle email magic link event
+   * Payload: { email: string, token: string }
+   */
+  private async handleEmailMagicLink(event: OutboxEvent): Promise<void> {
+    const { email, token } = event.payload as {
+      email: string;
+      token: string;
+    };
+
+    // Send magic link email
+    await this.mailerService.sendMagicLinkEmail(email, token);
+
+    this.logger.info(`Sent magic link email to ${email}`);
+  }
+
+  /**
+   * Handle email verification event
+   * Payload: { userId: string, email: string, token: string }
+   */
+  private async handleEmailVerification(event: OutboxEvent): Promise<void> {
+    const { userId, email, token } = event.payload as {
+      userId: string;
+      email: string;
+      token: string;
+    };
+
+    // Send verification email
+    await this.mailerService.sendVerifyEmail(userId, email, token);
+
+    this.logger.info(`Sent verification email to ${email}`, { userId });
   }
 
   /**

@@ -237,6 +237,7 @@ export class DIContainer {
       this.outboxRepository,
       this.notificationRepository,
       this.notificationService,
+      this.mailerService,
       logger,
       outboxConfig
     );
@@ -253,6 +254,7 @@ export class DIContainer {
       {
         userRepo: this.userRepository,
         credentialRepo: this.credentialRepository,
+        outboxRepo: this.outboxRepository,
         hash: this.hashService,
         clock: this.clockService.now.bind(this.clockService),
         mailer: this.mailerService,
@@ -272,6 +274,7 @@ export class DIContainer {
       userRepo: this.userRepository,
       magicLinkRepo: this.magicLinkRepository,
       mailer: this.mailerService,
+      outboxRepo: this.outboxRepository,
       clock: this.clockService,
       tokenExpiryMinutes: 15,
     });
@@ -321,6 +324,9 @@ export class DIContainer {
       invitationRepo: this.circleInvitationRepository,
       userRepo: this.userRepository,
       mailerService: this.mailerService,
+      notificationRepo: this.notificationRepository,
+      outboxRepo: this.outboxRepository,
+      notificationTemplateService: this.notificationTemplateService,
     });
 
     const getInvitationDetailsUseCase = new GetInvitationDetailsUseCase({
@@ -331,7 +337,11 @@ export class DIContainer {
     const acceptCircleInvitationUseCase = new AcceptCircleInvitationUseCase({
       invitationRepo: this.circleInvitationRepository,
       circleMemberRepo: this.circleMemberRepository,
+      circleRepo: this.circleRepository,
       userRepo: this.userRepository,
+      notificationRepo: this.notificationRepository,
+      outboxRepo: this.outboxRepository,
+      notificationTemplateService: this.notificationTemplateService,
     });
 
     const generateShareLinkUseCase = new GenerateShareLinkUseCase({
@@ -354,8 +364,13 @@ export class DIContainer {
       this.eventRepository,
       this.eventTimeRepository,
       this.circleMemberRepository,
+      this.circleRepository,
       this.eventRsvpRepository,
-      this.personalEventRepository
+      this.personalEventRepository,
+      this.userRepository,
+      this.notificationRepository,
+      this.outboxRepository,
+      this.notificationTemplateService
     );
 
     const getEventDetailUseCase = new GetEventDetailUseCase(
@@ -376,7 +391,11 @@ export class DIContainer {
     const updateRsvpUseCase = new UpdateRsvpUseCase(
       this.eventRsvpRepository,
       this.eventRepository,
-      this.circleMemberRepository
+      this.circleMemberRepository,
+      this.userRepository,
+      this.notificationRepository,
+      this.outboxRepository,
+      this.notificationTemplateService
     );
 
     const voteEventTimeUseCase = new VoteEventTimeUseCase(
@@ -396,8 +415,12 @@ export class DIContainer {
       this.eventRepository,
       this.eventTimeRepository,
       this.circleMemberRepository,
+      this.circleRepository,
       this.eventRsvpRepository,
-      this.personalEventRepository
+      this.personalEventRepository,
+      this.notificationRepository,
+      this.outboxRepository,
+      this.notificationTemplateService
     );
 
     // Controllers

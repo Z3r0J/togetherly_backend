@@ -3,12 +3,15 @@ import {
   ICredentialRepository,
   IUserRepository,
 } from "@domain/ports/account.repository.js";
+import { IOutboxRepository } from "@domain/ports/notification.repository.js";
+import { createOutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
 import { Result } from "@shared/types/index.js";
 import { ErrorCode } from "@shared/errors/index.js";
 
 type Deps = {
   userRepo: IUserRepository;
   credentialRepo: ICredentialRepository;
+  outboxRepo?: IOutboxRepository;
   hash: {
     make(password: string): Promise<string>;
   };
@@ -33,8 +36,15 @@ export class RegisterUserWithPasswordUseCase {
   constructor(private deps: Deps) {}
 
   async execute(input: unknown): Promise<Result<RegisterResult>> {
-    const { userRepo, credentialRepo, hash, clock, mailer, verifyEmailToken } =
-      this.deps;
+    const {
+      userRepo,
+      credentialRepo,
+      outboxRepo,
+      hash,
+      clock,
+      mailer,
+      verifyEmailToken,
+    } = this.deps;
 
     // Validate input
     const dto = createUserSchema.safeParse(input);
@@ -84,10 +94,28 @@ export class RegisterUserWithPasswordUseCase {
     }
 
     // Send verification email (optional)
-    if (mailer && verifyEmailToken) {
+    if (verifyEmailToken) {
       try {
         const token = await verifyEmailToken.issue(userId);
-        await mailer.sendVerifyEmail(userId, userResult.data.email, token);
+
+        // Use outbox pattern if available, otherwise fallback to direct email
+        if (outboxRepo) {
+          const emailEvent = createOutboxEvent({
+            aggregateType: "user",
+            aggregateId: userId,
+            eventType: "email.verification",
+            maxRetries: 3,
+            payload: {
+              userId,
+              email: userResult.data.email,
+              token,
+            },
+          });
+          await outboxRepo.create(emailEvent);
+        } else if (mailer) {
+          // Fallback to synchronous email
+          await mailer.sendVerifyEmail(userId, userResult.data.email, token);
+        }
       } catch (error: any) {
         // Don't fail registration if email sending fails, just log it
         console.error("Failed to send verification email:", error);

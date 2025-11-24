@@ -5,6 +5,13 @@ import {
   IEventRepository,
 } from "@domain/ports/event.repository.js";
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
+import { IUserRepository } from "@domain/ports/account.repository.js";
+import {
+  INotificationRepository,
+  IOutboxRepository,
+} from "@domain/ports/notification.repository.js";
+import { NotificationTemplateService } from "@app/services/notification-template.service.js";
+import { createOutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
 import { UpdateRsvpInput } from "@app/schemas/events/event.schema.js";
 import { Result } from "@shared/types/Result.js";
 import { ErrorCode } from "@shared/errors/index.js";
@@ -17,7 +24,11 @@ export class UpdateRsvpUseCase {
   constructor(
     private readonly rsvpRepository: IEventRsvpRepository,
     private readonly eventRepository: IEventRepository,
-    private readonly circleMemberRepository: ICircleMemberRepository
+    private readonly circleMemberRepository: ICircleMemberRepository,
+    private readonly userRepository: IUserRepository,
+    private readonly notificationRepository: INotificationRepository,
+    private readonly outboxRepository: IOutboxRepository,
+    private readonly notificationTemplateService: NotificationTemplateService
   ) {}
 
   async execute(
@@ -70,6 +81,63 @@ export class UpdateRsvpUseCase {
       return savedRsvpResult;
     }
 
+    // Notify event creator if RSVP is from someone else
+    if (userId !== event.userId) {
+      await this.notifyEventCreator(userId, event, input.status);
+    }
+
     return Result.ok(savedRsvpResult.data);
+  }
+
+  /**
+   * Notify event creator when someone updates their RSVP
+   */
+  private async notifyEventCreator(
+    rsvpUserId: string,
+    event: any,
+    status: "going" | "not going" | "maybe"
+  ): Promise<void> {
+    try {
+      // Get RSVP user name
+      const userResult = await this.userRepository.findById(rsvpUserId);
+      if (!userResult.ok || !userResult.data) {
+        return; // Silently fail
+      }
+
+      const userName = userResult.data.name || "Someone";
+
+      // Create notification for event creator
+      const notification = this.notificationTemplateService.createRsvpUpdate(
+        event.userId,
+        { name: userName },
+        event,
+        status
+      );
+
+      const notificationResult = await this.notificationRepository.create(
+        notification
+      );
+
+      if (!notificationResult.ok) {
+        return; // Silently fail
+      }
+
+      // Create outbox event for immediate push
+      const pushEvent = createOutboxEvent({
+        aggregateType: "event",
+        aggregateId: event.id,
+        eventType: "notification.push",
+        maxRetries: 3,
+        payload: {
+          notificationId: notificationResult.data.id!,
+          userId: event.userId,
+        },
+      });
+
+      await this.outboxRepository.create(pushEvent);
+    } catch (error) {
+      // Silently fail to not block RSVP update
+      console.error("Error notifying event creator:", error);
+    }
   }
 }

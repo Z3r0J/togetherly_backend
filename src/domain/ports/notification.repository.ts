@@ -14,6 +14,7 @@ export { NotificationCategory };
  */
 export interface INotificationRepository {
   create(notification: Notification): Promise<Result<Notification>>;
+  createBatch(notifications: Notification[]): Promise<Result<Notification[]>>;
   findById(id: string): Promise<Result<Notification | null>>;
   findByUserId(
     userId: string,

@@ -5,6 +5,12 @@ import {
 } from "@domain/ports/circle.repository.js";
 import { IUserRepository } from "@domain/ports/account.repository.js";
 import { IMailerService } from "@domain/ports/mailer.port.js";
+import {
+  INotificationRepository,
+  IOutboxRepository,
+} from "@domain/ports/notification.repository.js";
+import { NotificationTemplateService } from "@app/services/notification-template.service.js";
+import { createOutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
 import { CircleInvitation } from "@domain/entities/circles/circle-invitation.entity.js";
 import { Result } from "@shared/types/index.js";
 import { ErrorCode } from "@shared/errors/index.js";
@@ -28,6 +34,9 @@ export type SendCircleInvitationDependencies = {
   invitationRepo: ICircleInvitationRepository;
   userRepo: IUserRepository;
   mailerService: IMailerService;
+  notificationRepo: INotificationRepository;
+  outboxRepo: IOutboxRepository;
+  notificationTemplateService: NotificationTemplateService;
 };
 
 /**
@@ -165,13 +174,58 @@ export class SendCircleInvitationUseCase {
         // Send email if type is email
         if (type === "email") {
           const isRegistered = userResult.ok && userResult.data !== null;
-          await this.deps.mailerService.sendCircleInvitationEmail(
-            inviterName,
-            circle.name,
-            email,
-            token,
-            isRegistered
-          );
+
+          // Create outbox event for async email sending
+          const emailEvent = createOutboxEvent({
+            aggregateType: "circle",
+            aggregateId: circleId,
+            eventType: "email.invitation",
+            maxRetries: 3,
+            payload: {
+              inviterName,
+              circleName: circle.name,
+              email,
+              token,
+              isRegistered,
+            },
+          });
+
+          await this.deps.outboxRepo.create(emailEvent);
+        }
+
+        // Create in-app notification if user exists
+        if (userResult.ok && userResult.data) {
+          try {
+            const notification =
+              this.deps.notificationTemplateService.createCircleInvitation(
+                userResult.data.id!,
+                { name: inviterName },
+                circle
+              );
+
+            const notificationResult = await this.deps.notificationRepo.create(
+              notification
+            );
+
+            if (notificationResult.ok) {
+              // Create outbox event for immediate push
+              const pushEvent = createOutboxEvent({
+                aggregateType: "circle",
+                aggregateId: circleId,
+                eventType: "notification.push",
+                maxRetries: 3,
+                payload: {
+                  notificationId: notificationResult.data.id!,
+                  userId: userResult.data.id!,
+                },
+              });
+
+              await this.deps.outboxRepo.create(pushEvent);
+            }
+          } catch (error) {
+            // Silently fail notification, don't block invitation
+            console.error("Error creating in-app notification:", error);
+          }
         }
 
         success.push(email);

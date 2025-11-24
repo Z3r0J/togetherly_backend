@@ -11,6 +11,7 @@ export type OutboxEventType =
   | "notification.reminder"
   | "email.invitation"
   | "email.magic_link"
+  | "email.verification"
   | "rsvp.auto_create";
 
 export type OutboxEventStatus =

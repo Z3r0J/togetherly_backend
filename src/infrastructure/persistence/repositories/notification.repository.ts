@@ -35,6 +35,24 @@ export class NotificationRepository implements INotificationRepository {
     }
   }
 
+  async createBatch(
+    notifications: Notification[]
+  ): Promise<Result<Notification[]>> {
+    try {
+      const saved = await this.repository.save(notifications);
+      return Result.ok(saved);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unknown error creating notifications";
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async findById(id: string): Promise<Result<Notification | null>> {
     try {
       const notification = await this.repository.findOne({ where: { id } });
