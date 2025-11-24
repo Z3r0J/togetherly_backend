@@ -318,4 +318,137 @@ If you didn't request this magic link, please ignore this email.
       html,
     });
   }
+
+  /**
+   * Send a circle invitation email
+   * @param inviterName - Name of the person sending the invitation
+   * @param circleName - Name of the circle
+   * @param invitedEmail - Email address of the invited person
+   * @param token - Invitation token
+   * @param isRegistered - Whether the invited email is already registered
+   * @returns Promise that resolves when email is sent
+   */
+  async sendCircleInvitationEmail(
+    inviterName: string,
+    circleName: string,
+    invitedEmail: string,
+    token: string,
+    isRegistered: boolean
+  ): Promise<void> {
+    const deepLink = `togetherly://circle/join/${token}`;
+    const webLink = `${this.config.appUrl}/join/${token}`;
+
+    const registeredUserHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Circle Invitation - Togetherly</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #4a90e2;">You're Invited to Join ${circleName}!</h1>
+            <p>Hi there!</p>
+            <p><strong>${inviterName}</strong> has invited you to join the circle <strong>"${circleName}"</strong> on Togetherly.</p>
+            <p>Click one of the buttons below to accept the invitation:</p>
+            <div style="margin: 30px 0;">
+              <a href="${deepLink}" 
+                 style="background-color: #4a90e2; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">
+                Open in App
+              </a>
+              <a href="${webLink}" 
+                 style="background-color: #6c757d; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block;">
+                Open in Browser
+              </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              This invitation will expire in 7 days.<br>
+              If you didn't expect this invitation, you can safely ignore this email.
+            </p>
+            <p style="color: #999; font-size: 12px; margin-top: 30px;">
+              Link not working? Copy and paste this URL into your browser:<br>
+              ${webLink}
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const unregisteredUserHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Circle Invitation - Togetherly</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #4a90e2;">You're Invited to Join ${circleName}!</h1>
+            <p>Hi there!</p>
+            <p><strong>${inviterName}</strong> has invited you to join the circle <strong>"${circleName}"</strong> on Togetherly.</p>
+            <p>You'll need to create a Togetherly account first. Click the button below to get started:</p>
+            <div style="margin: 30px 0;">
+              <a href="${deepLink}" 
+                 style="background-color: #4a90e2; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">
+                Sign Up & Join
+              </a>
+              <a href="${webLink}" 
+                 style="background-color: #6c757d; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block;">
+                Open in Browser
+              </a>
+            </div>
+            <p style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+              <strong>Note:</strong> You'll need to sign up with this email address (${invitedEmail}) 
+              to accept the invitation. After signing up, you'll automatically join the circle.
+            </p>
+            <p style="color: #666; font-size: 14px;">
+              This invitation will expire in 7 days.<br>
+              If you didn't expect this invitation, you can safely ignore this email.
+            </p>
+            <p style="color: #999; font-size: 12px; margin-top: 30px;">
+              Link not working? Copy and paste this URL into your browser:<br>
+              ${webLink}
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const html = isRegistered ? registeredUserHtml : unregisteredUserHtml;
+
+    const text = isRegistered
+      ? `
+You're Invited to Join ${circleName}!
+
+${inviterName} has invited you to join the circle "${circleName}" on Togetherly.
+
+Accept invitation: ${webLink}
+
+This invitation will expire in 7 days.
+If you didn't expect this invitation, you can safely ignore this email.
+      `
+      : `
+You're Invited to Join ${circleName}!
+
+${inviterName} has invited you to join the circle "${circleName}" on Togetherly.
+
+You'll need to create a Togetherly account first with this email address (${invitedEmail}).
+
+Get started: ${webLink}
+
+This invitation will expire in 7 days.
+If you didn't expect this invitation, you can safely ignore this email.
+      `;
+
+    await this.send({
+      to: invitedEmail,
+      subject: `${inviterName} invited you to join ${circleName}`,
+      text,
+      html,
+    });
+  }
 }

@@ -50,4 +50,21 @@ export interface IMailerService {
    * @returns Promise that resolves when email is sent
    */
   sendMagicLinkEmail(email: string, token: string): Promise<void>;
+
+  /**
+   * Send a circle invitation email
+   * @param inviterName - Name of the person sending the invitation
+   * @param circleName - Name of the circle
+   * @param invitedEmail - Email address of the invited person
+   * @param token - Invitation token
+   * @param isRegistered - Whether the invited email is already registered
+   * @returns Promise that resolves when email is sent
+   */
+  sendCircleInvitationEmail(
+    inviterName: string,
+    circleName: string,
+    invitedEmail: string,
+    token: string,
+    isRegistered: boolean
+  ): Promise<void>;
 }

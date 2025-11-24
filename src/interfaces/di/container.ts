@@ -20,6 +20,12 @@ import {
   DeleteCircleUseCase,
   ListMyCirclesUseCase,
   GetCircleDetailUseCase,
+  SendCircleInvitationUseCase,
+  GetInvitationDetailsUseCase,
+  AcceptCircleInvitationUseCase,
+  GenerateShareLinkUseCase,
+  JoinCircleViaShareLinkUseCase,
+  GetCircleByShareTokenUseCase,
 } from "@app/use-cases/circles/index.js";
 import {
   CreateEventUseCase,
@@ -37,7 +43,11 @@ import {
   IOAuthAccountRepository,
   IUserRepository,
 } from "@domain/ports/account.repository.js";
-import { ICircleRepository } from "@domain/ports/circle.repository.js";
+import {
+  ICircleRepository,
+  ICircleMemberRepository,
+  ICircleInvitationRepository,
+} from "@domain/ports/circle.repository.js";
 import {
   IEventRepository,
   IEventRsvpRepository,
@@ -50,6 +60,7 @@ import { OAuthRepository } from "@infra/persistence/repositories/oauth.repositor
 import { MagicLinkTokenRepository } from "@infra/persistence/repositories/magic-link.repository.js";
 import { CircleRepository } from "@infra/persistence/repositories/circle.repository.js";
 import { CircleMemberRepository } from "@infra/persistence/repositories/circle-member.repository.js";
+import { CircleInvitationRepository } from "@infra/persistence/repositories/circle-invitation.repository.js";
 import { EventRepository } from "@infra/persistence/repositories/event.repository.js";
 import { EventRsvpRepository } from "@infra/persistence/repositories/event-rsvp.repository.js";
 import { EventTimeRepository } from "@infra/persistence/repositories/event-time.repository.js";
@@ -77,7 +88,8 @@ export class DIContainer {
   private static oauthRepository: IOAuthAccountRepository;
   private static magicLinkRepository: IMagicLinkRepository;
   private static circleRepository: ICircleRepository;
-  private static circleMemberRepository: CircleMemberRepository;
+  private static circleMemberRepository: ICircleMemberRepository;
+  private static circleInvitationRepository: ICircleInvitationRepository;
   private static eventRepository: IEventRepository;
   private static eventRsvpRepository: IEventRsvpRepository;
   private static eventTimeRepository: IEventTimeRepository;
@@ -106,6 +118,9 @@ export class DIContainer {
     this.magicLinkRepository = new MagicLinkTokenRepository(dataSource);
     this.circleRepository = new CircleRepository(dataSource);
     this.circleMemberRepository = new CircleMemberRepository(dataSource);
+    this.circleInvitationRepository = new CircleInvitationRepository(
+      dataSource
+    );
 
     // Event Repositories
     this.eventRepository = new EventRepository(
@@ -229,6 +244,40 @@ export class DIContainer {
       circleMemberRepo: this.circleMemberRepository,
     });
 
+    const sendCircleInvitationUseCase = new SendCircleInvitationUseCase({
+      circleRepo: this.circleRepository,
+      circleMemberRepo: this.circleMemberRepository,
+      invitationRepo: this.circleInvitationRepository,
+      userRepo: this.userRepository,
+      mailerService: this.mailerService,
+    });
+
+    const getInvitationDetailsUseCase = new GetInvitationDetailsUseCase({
+      invitationRepo: this.circleInvitationRepository,
+      circleMemberRepo: this.circleMemberRepository,
+    });
+
+    const acceptCircleInvitationUseCase = new AcceptCircleInvitationUseCase({
+      invitationRepo: this.circleInvitationRepository,
+      circleMemberRepo: this.circleMemberRepository,
+      userRepo: this.userRepository,
+    });
+
+    const generateShareLinkUseCase = new GenerateShareLinkUseCase({
+      circleRepo: this.circleRepository,
+      circleMemberRepo: this.circleMemberRepository,
+    });
+
+    const joinCircleViaShareLinkUseCase = new JoinCircleViaShareLinkUseCase({
+      circleRepo: this.circleRepository,
+      circleMemberRepo: this.circleMemberRepository,
+      userRepo: this.userRepository,
+    });
+
+    const getCircleByShareTokenUseCase = new GetCircleByShareTokenUseCase({
+      circleRepo: this.circleRepository,
+    });
+
     // Event Use Cases
     const createEventUseCase = new CreateEventUseCase(
       this.eventRepository,
@@ -291,7 +340,13 @@ export class DIContainer {
       updateCircleUseCase,
       deleteCircleUseCase,
       listMyCirclesUseCase,
-      getCircleDetailUseCase
+      getCircleDetailUseCase,
+      sendCircleInvitationUseCase,
+      getInvitationDetailsUseCase,
+      acceptCircleInvitationUseCase,
+      generateShareLinkUseCase,
+      joinCircleViaShareLinkUseCase,
+      getCircleByShareTokenUseCase
     );
 
     this.eventController = new EventController(

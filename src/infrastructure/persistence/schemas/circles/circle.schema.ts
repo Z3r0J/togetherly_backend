@@ -32,6 +32,12 @@ export const CircleSchema = new EntitySchema<Circle>({
       enum: ["public", "invite-only"],
       default: "invite-only",
     },
+    shareToken: {
+      type: "varchar",
+      length: 64,
+      nullable: true,
+      unique: true,
+    },
     ownerId: {
       type: "uuid",
       name: "owner_id",
@@ -61,16 +67,20 @@ export const CircleSchema = new EntitySchema<Circle>({
         name: "owner_id",
       },
     },
-    events:{
-        "type":"one-to-many",
-        "target":"Event",
-        "inverseSide":"circle"
-    }
+    events: {
+      type: "one-to-many",
+      target: "Event",
+      inverseSide: "circle",
+    },
   },
   indices: [
     {
       name: "IDX_CIRCLE_OWNER",
       columns: ["ownerId"],
+    },
+    {
+      name: "IDX_CIRCLE_SHARE_TOKEN",
+      columns: ["shareToken"],
     },
   ],
 });

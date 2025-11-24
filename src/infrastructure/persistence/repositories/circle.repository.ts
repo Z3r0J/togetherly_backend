@@ -67,6 +67,25 @@ export class CircleRepository implements ICircleRepository {
     }
   }
 
+  async findByShareToken(shareToken: string): Promise<Result<Circle | null>> {
+    try {
+      const circle = await this.repository.findOne({
+        where: { shareToken, isDeleted: false },
+        relations: ["owner"],
+      });
+      return Result.ok(circle);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unknown error fetching circle by share token";
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async update(
     id: string,
     updates: Partial<Circle>

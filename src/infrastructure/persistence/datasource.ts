@@ -6,7 +6,11 @@ import {
   OAuthSchema,
   UserSchema,
 } from "./schemas/account/index.js";
-import { CircleSchema, CircleMemberSchema } from "./schemas/circles/index.js";
+import {
+  CircleSchema,
+  CircleMemberSchema,
+  CircleInvitationSchema,
+} from "./schemas/circles/index.js";
 import {
   EventSchema,
   EventRsvpSchema,
@@ -34,6 +38,7 @@ export const createDataSource = (env: Env): DataSource => {
       MagicLinkSchema,
       CircleSchema,
       CircleMemberSchema,
+      CircleInvitationSchema,
       EventSchema,
       EventRsvpSchema,
       EventTimeSchema,

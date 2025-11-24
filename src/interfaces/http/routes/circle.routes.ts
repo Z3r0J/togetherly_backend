@@ -13,7 +13,14 @@ export const createCircleRoutes = (
   const router = Router();
   const jwtAuth = createJwtAuthMiddleware(tokenService);
 
-  // All circle routes require authentication
+  // Public routes (no authentication)
+  // Get invitation details
+  router.get("/invitations/:token", controller.getInvitationDetails);
+
+  // Get circle details by share token (public preview)
+  router.get("/share/:shareToken", controller.getCircleByShareToken);
+
+  // All other circle routes require authentication
   router.use(jwtAuth);
 
   // Create circle
@@ -21,6 +28,18 @@ export const createCircleRoutes = (
 
   // List my circles
   router.get("/", controller.listMyCircles);
+
+  // Send invitations
+  router.post("/:circleId/invite", controller.sendInvitation);
+
+  // Accept invitation
+  router.post("/invitations/:token/accept", controller.acceptInvitation);
+
+  // Generate share link
+  router.post("/:circleId/share-link", controller.generateShareLink);
+
+  // Join via share link
+  router.post("/share/:shareToken/join", controller.joinViaShareLink);
 
   // Get circle detail
   router.get("/:id", controller.getCircleDetail);

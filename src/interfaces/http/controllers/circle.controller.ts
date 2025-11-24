@@ -11,6 +11,17 @@ import {
   UpdateCircleResult,
   ListMyCirclesResult,
   GetCircleDetailResult,
+  SendCircleInvitationUseCase,
+  SendCircleInvitationResult,
+  GetInvitationDetailsUseCase,
+  GetInvitationDetailsResult,
+  AcceptCircleInvitationUseCase,
+  GenerateShareLinkUseCase,
+  GenerateShareLinkResult,
+  JoinCircleViaShareLinkUseCase,
+  JoinCircleViaShareLinkResult,
+  GetCircleByShareTokenUseCase,
+  GetCircleByShareTokenResult,
 } from "@app/use-cases/circles/index.js";
 
 export class CircleController {
@@ -19,7 +30,13 @@ export class CircleController {
     private updateCircleUseCase: UpdateCircleUseCase,
     private deleteCircleUseCase: DeleteCircleUseCase,
     private listMyCirclesUseCase: ListMyCirclesUseCase,
-    private getCircleDetailUseCase: GetCircleDetailUseCase
+    private getCircleDetailUseCase: GetCircleDetailUseCase,
+    private sendCircleInvitationUseCase: SendCircleInvitationUseCase,
+    private getInvitationDetailsUseCase: GetInvitationDetailsUseCase,
+    private acceptCircleInvitationUseCase: AcceptCircleInvitationUseCase,
+    private generateShareLinkUseCase: GenerateShareLinkUseCase,
+    private joinCircleViaShareLinkUseCase: JoinCircleViaShareLinkUseCase,
+    private getCircleByShareTokenUseCase: GetCircleByShareTokenUseCase
   ) {}
 
   /**
@@ -178,6 +195,194 @@ export class CircleController {
         await this.getCircleDetailUseCase.execute({
           circleId: req.params.id,
           userId: req.user.userId,
+        });
+
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * POST /api/circles/:circleId/invite
+   * Send invitations to join a circle
+   * Requires JWT authentication (owner/admin only)
+   */
+  sendInvitation = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({
+          success: false,
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const { circleId } = req.params;
+      const { emails, type } = req.body;
+
+      const result: Result<SendCircleInvitationResult> =
+        await this.sendCircleInvitationUseCase.execute({
+          circleId,
+          invitedEmails: emails,
+          invitedBy: req.user.userId,
+          type: type || "email",
+        });
+
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * GET /api/circles/invitations/:token
+   * Get invitation details (public endpoint)
+   * No authentication required
+   */
+  getInvitationDetails = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { token } = req.params;
+
+      const result: Result<GetInvitationDetailsResult> =
+        await this.getInvitationDetailsUseCase.execute({ token });
+
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * POST /api/circles/invitations/:token/accept
+   * Accept a circle invitation
+   * Requires JWT authentication
+   */
+  acceptInvitation = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.user || !req.user.userId || !req.user.email) {
+        res.status(401).json({
+          success: false,
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const { token } = req.params;
+
+      const result = await this.acceptCircleInvitationUseCase.execute({
+        token,
+        userId: req.user.userId,
+        userEmail: req.user.email,
+      });
+
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * POST /api/circles/:circleId/share-link
+   * Generate or get share link for a circle
+   * Requires JWT authentication (owner/admin only)
+   */
+  generateShareLink = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({
+          success: false,
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const { circleId } = req.params;
+
+      const result: Result<GenerateShareLinkResult> =
+        await this.generateShareLinkUseCase.execute({
+          circleId,
+          userId: req.user.userId,
+        });
+
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * GET /api/circles/share/:shareToken
+   * Get circle details by share token (public endpoint)
+   * No authentication required
+   */
+  getCircleByShareToken = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { shareToken } = req.params;
+
+      const result: Result<GetCircleByShareTokenResult> =
+        await this.getCircleByShareTokenUseCase.execute({ shareToken });
+
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * POST /api/circles/share/:shareToken/join
+   * Join a circle using share link
+   * Requires JWT authentication
+   */
+  joinViaShareLink = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.user || !req.user.userId || !req.user.email) {
+        res.status(401).json({
+          success: false,
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const { shareToken } = req.params;
+
+      const result: Result<JoinCircleViaShareLinkResult> =
+        await this.joinCircleViaShareLinkUseCase.execute({
+          shareToken,
+          userId: req.user.userId,
+          userEmail: req.user.email,
         });
 
       this.sendResult(res, result);

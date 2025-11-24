@@ -14,6 +14,7 @@ export interface Circle {
   description?: string;
   color?: string;
   privacy?: "public" | "invite-only";
+  shareToken?: string;
   ownerId: string;
   isDeleted?: boolean;
   createdAt?: Date;
