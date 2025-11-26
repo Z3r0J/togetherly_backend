@@ -7,13 +7,16 @@ import {
   DeletePersonalEventUseCase,
   ListPersonalEventsUseCase,
   GetPersonalEventDetailUseCase,
+  ListUnifiedCalendarUseCase,
 } from "@app/use-cases/calendar/index.js";
 import {
   createPersonalEventSchema,
   updatePersonalEventSchema,
   listPersonalEventsSchema,
+  listUnifiedCalendarSchema,
 } from "@app/schemas/calendar/index.js";
 import { PersonalEvent } from "@domain/entities/calendar/personal-event.entity.js";
+import { ListUnifiedCalendarResult } from "@app/use-cases/calendar/list-unified-calendar.use-case.js";
 
 /**
  * Personal Event Calendar Controller
@@ -24,7 +27,8 @@ export class CalendarController {
     private updatePersonalEventUseCase: UpdatePersonalEventUseCase,
     private deletePersonalEventUseCase: DeletePersonalEventUseCase,
     private listPersonalEventsUseCase: ListPersonalEventsUseCase,
-    private getPersonalEventDetailUseCase: GetPersonalEventDetailUseCase
+    private getPersonalEventDetailUseCase: GetPersonalEventDetailUseCase,
+    private listUnifiedCalendarUseCase: ListUnifiedCalendarUseCase
   ) {}
 
   /**
@@ -260,4 +264,53 @@ export class CalendarController {
       });
     }
   }
+
+  /**
+   * GET /api/calendar/unified
+   * Get unified calendar (personal + circle events)
+   * Query params: startDate, endDate, filter (all/personal/going/maybe/not-going)
+   * Requires JWT authentication
+   */
+  listUnifiedCalendar = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({
+          success: false,
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const validation = listUnifiedCalendarSchema.safeParse(req.query);
+
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          errorCode: ErrorCode.VALIDATION_FAILED,
+          message: validation.error.errors[0].message,
+          details: validation.error.errors,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const result: Result<ListUnifiedCalendarResult> =
+        await this.listUnifiedCalendarUseCase.execute({
+          userId: req.user.userId,
+          startDate: validation.data.startDate,
+          endDate: validation.data.endDate,
+          filter: validation.data.filter,
+        });
+
+      this.sendResult(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

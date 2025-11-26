@@ -76,15 +76,15 @@ export const OutboxEventSchema = new EntitySchema<OutboxEvent>({
   indices: [
     {
       name: "IDX_OUTBOX_STATUS_CREATED",
-      columns: ["status", "created_at"],
+      columns: ["status", "createdAt"],
     },
     {
       name: "IDX_OUTBOX_SCHEDULED",
-      columns: ["scheduled_for", "status"],
+      columns: ["scheduledFor", "status"],
     },
     {
       name: "IDX_OUTBOX_AGGREGATE",
-      columns: ["aggregate_type", "aggregate_id"],
+      columns: ["aggregateType", "aggregateId"],
     },
   ],
 });

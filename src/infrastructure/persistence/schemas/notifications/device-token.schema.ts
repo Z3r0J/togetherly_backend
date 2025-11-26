@@ -65,7 +65,7 @@ export const DeviceTokenSchema = new EntitySchema<DeviceToken>({
   indices: [
     {
       name: "IDX_DEVICE_TOKEN_USER_ACTIVE",
-      columns: ["user_id", "is_active"],
+      columns: ["userId", "isActive"],
     },
     {
       name: "IDX_DEVICE_TOKEN_TOKEN",

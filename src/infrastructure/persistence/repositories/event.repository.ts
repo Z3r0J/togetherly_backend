@@ -139,6 +139,7 @@ export class EventRepository implements IEventRepository {
     try {
       const events = await this.repository.find({
         where: { circleId, isDeleted: false },
+        relations: ["circle"],
         order: { startsAt: "ASC" },
       });
       return Result.ok(events);

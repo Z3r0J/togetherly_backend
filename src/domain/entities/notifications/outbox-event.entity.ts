@@ -51,6 +51,6 @@ export const createOutboxEvent = (
     retryCount: 0,
     maxRetries: props.maxRetries,
     lastError: props.lastError,
-    scheduledFor: props.scheduledFor,
+    scheduledFor: props.scheduledFor || new Date(), // Default to now if not specified
   };
 };

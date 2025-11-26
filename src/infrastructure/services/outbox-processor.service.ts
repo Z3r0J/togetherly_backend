@@ -19,6 +19,7 @@ export type OutboxProcessorConfig = {
 export class OutboxProcessorService {
   private isRunning = false;
   private timer: NodeJS.Timeout | null = null;
+  private lastNoEventsLog: number | null = null;
 
   constructor(
     private outboxRepository: IOutboxRepository,
@@ -94,12 +95,26 @@ export class OutboxProcessorService {
         this.config.batchSize
       );
 
-      if (!pendingResult.ok || !pendingResult.data) {
+      if (!pendingResult.ok) {
+        this.logger.error(
+          "Failed to fetch pending events from outbox",
+          new Error(pendingResult.error)
+        );
+        return;
+      }
+
+      if (!pendingResult.data) {
         return;
       }
 
       const events = pendingResult.data;
       if (events.length === 0) {
+        // Log once every minute to avoid spam
+        const now = Date.now();
+        if (!this.lastNoEventsLog || now - this.lastNoEventsLog > 60000) {
+          this.logger.info("No pending outbox events to process");
+          this.lastNoEventsLog = now;
+        }
         return;
       }
 

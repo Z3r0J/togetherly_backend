@@ -89,15 +89,15 @@ export const NotificationSchema = new EntitySchema<Notification>({
   indices: [
     {
       name: "IDX_NOTIFICATION_USER_CATEGORY_READ",
-      columns: ["user_id", "category", "is_read", "created_at"],
+      columns: ["userId", "category", "isRead", "createdAt"],
     },
     {
       name: "IDX_NOTIFICATION_USER_READ",
-      columns: ["user_id", "is_read"],
+      columns: ["userId", "isRead"],
     },
     {
       name: "IDX_NOTIFICATION_CREATED",
-      columns: ["created_at"],
+      columns: ["createdAt"],
     },
   ],
 });

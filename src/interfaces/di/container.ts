@@ -43,6 +43,7 @@ import {
   DeletePersonalEventUseCase,
   ListPersonalEventsUseCase,
   GetPersonalEventDetailUseCase,
+  ListUnifiedCalendarUseCase,
 } from "@app/use-cases/calendar/index.js";
 import {
   ICredentialRepository,
@@ -479,12 +480,20 @@ export class DIContainer {
       personalEventRepo: this.personalEventRepository,
     });
 
+    const listUnifiedCalendarUseCase = new ListUnifiedCalendarUseCase({
+      personalEventRepo: this.personalEventRepository,
+      circleRepo: this.circleRepository,
+      eventRepo: this.eventRepository,
+      eventRsvpRepo: this.eventRsvpRepository,
+    });
+
     this.calendarController = new CalendarController(
       createPersonalEventUseCase,
       updatePersonalEventUseCase,
       deletePersonalEventUseCase,
       listPersonalEventsUseCase,
-      getPersonalEventDetailUseCase
+      getPersonalEventDetailUseCase,
+      listUnifiedCalendarUseCase
     );
 
     // Notification Controller

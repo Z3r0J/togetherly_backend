@@ -16,6 +16,9 @@ export const createCalendarRoutes = (
   // All calendar routes require authentication
   router.use(jwtAuth);
 
+  // Get unified calendar (personal + circle events)
+  router.get("/unified", controller.listUnifiedCalendar);
+
   // Create personal event
   router.post("/events", controller.createPersonalEvent);
 

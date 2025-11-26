@@ -1,4 +1,11 @@
-import { DataSource, Repository, In, LessThanOrEqual, LessThan } from "typeorm";
+import {
+  DataSource,
+  Repository,
+  In,
+  LessThanOrEqual,
+  LessThan,
+  IsNull,
+} from "typeorm";
 import { IOutboxRepository } from "@domain/ports/notification.repository.js";
 import { OutboxEvent } from "@domain/entities/index.js";
 import { OutboxEventSchema } from "../schemas/notifications/outbox-event.schema.js";
@@ -19,6 +26,9 @@ export class OutboxRepository implements IOutboxRepository {
   async create(event: OutboxEvent): Promise<Result<OutboxEvent>> {
     try {
       const saved = await this.repository.save(event);
+      console.log(
+        `[Outbox] Created event: ${saved.eventType} with ID: ${saved.id}, scheduledFor: ${saved.scheduledFor}`
+      );
       return Result.ok(saved);
     } catch (error) {
       const message =
@@ -35,13 +45,20 @@ export class OutboxRepository implements IOutboxRepository {
   async findPending(limit: number = 100): Promise<Result<OutboxEvent[]>> {
     try {
       const events = await this.repository.find({
-        where: {
-          status: In(["pending"]),
-          scheduledFor: LessThanOrEqual(new Date()) as any,
-        },
+        where: [
+          {
+            status: In(["pending"]),
+            scheduledFor: LessThanOrEqual(new Date()) as any,
+          },
+          {
+            status: In(["pending"]),
+            scheduledFor: IsNull(),
+          },
+        ],
         order: { createdAt: "ASC" },
         take: limit,
       });
+      console.log(`[Outbox] Found ${events.length} pending events`);
       return Result.ok(events);
     } catch (error) {
       const message =
