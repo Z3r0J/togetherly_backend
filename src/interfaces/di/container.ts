@@ -230,7 +230,7 @@ export class DIContainer {
 
     // Outbox Processor Service
     const outboxConfig: OutboxProcessorConfig = {
-      pollingIntervalMs: 5000, // Poll every 5 seconds
+      pollingIntervalMs: 10000, // Poll every 10 seconds
       maxRetries: 3,
       batchSize: 10,
     };

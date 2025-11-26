@@ -1,4 +1,6 @@
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
+import * as fs from "fs";
+import * as path from "path";
 import { INotificationService } from "@domain/ports/notification.repository.js";
 import { IDeviceTokenRepository } from "@domain/ports/notification.repository.js";
 import { ILogger } from "@domain/ports/logger.port.js";
@@ -27,29 +29,35 @@ export class FcmNotificationService implements INotificationService {
 
   private initializeFirebase(): void {
     try {
-      // Check if already initialized
-      if (admin.apps.length > 0) {
-        this.app = admin.apps[0];
-        this.logger.info("Firebase Admin already initialized");
+      // Check if credentials are provided
+      if (!this.config.serviceAccountPath && !this.config.serviceAccountJson) {
+        this.logger.warn(
+          "Firebase not configured - push notifications will be disabled"
+        );
         return;
       }
 
       // Initialize with service account
       if (this.config.serviceAccountPath) {
-        const serviceAccount = require(this.config.serviceAccountPath);
+        // Resolve path relative to project root
+        const absolutePath = path.resolve(
+          process.cwd(),
+          this.config.serviceAccountPath
+        );
+        this.logger.info(`Loading Firebase credentials from: ${absolutePath}`);
+        const serviceAccountContent = fs.readFileSync(absolutePath, "utf8");
+        const serviceAccount = JSON.parse(serviceAccountContent);
         this.app = admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
         });
       } else if (this.config.serviceAccountJson) {
+        this.logger.info(
+          "Loading Firebase credentials from environment variable"
+        );
         const serviceAccount = JSON.parse(this.config.serviceAccountJson);
         this.app = admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
         });
-      } else {
-        this.logger.warn(
-          "Firebase not configured - push notifications will be disabled"
-        );
-        return;
       }
 
       this.logger.info("Firebase Admin SDK initialized successfully");
