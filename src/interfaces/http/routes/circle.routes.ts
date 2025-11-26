@@ -14,6 +14,9 @@ export const createCircleRoutes = (
   const jwtAuth = createJwtAuthMiddleware(tokenService);
 
   // Public routes (no authentication)
+  // Redirect endpoint for email invitation links
+  router.get("/invitations/:token/join", controller.redirectToApp);
+
   // Get invitation details
   router.get("/invitations/:token", controller.getInvitationDetails);
 

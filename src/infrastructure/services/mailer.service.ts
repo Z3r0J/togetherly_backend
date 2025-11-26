@@ -335,8 +335,8 @@ If you didn't request this magic link, please ignore this email.
     token: string,
     isRegistered: boolean
   ): Promise<void> {
-    const deepLink = `togetherly://circle/join/${token}`;
-    const webLink = `${this.config.appUrl}/join/${token}`;
+    // Backend redirect URL that will redirect to deep link
+    const joinUrl = `${this.config.appUrl}/api/circles/invitations/${token}/join`;
 
     const registeredUserHtml = `
       <!DOCTYPE html>
@@ -350,17 +350,12 @@ If you didn't request this magic link, please ignore this email.
             <h1 style="color: #4a90e2;">You're Invited to Join ${circleName}!</h1>
             <p>Hi there!</p>
             <p><strong>${inviterName}</strong> has invited you to join the circle <strong>"${circleName}"</strong> on Togetherly.</p>
-            <p>Click one of the buttons below to accept the invitation:</p>
+            <p>Click the button below to accept the invitation:</p>
             <div style="margin: 30px 0;">
-              <a href="${deepLink}" 
+              <a href="${joinUrl}" 
                  style="background-color: #4a90e2; color: white; padding: 12px 24px; 
-                        text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">
-                Open in App
-              </a>
-              <a href="${webLink}" 
-                 style="background-color: #6c757d; color: white; padding: 12px 24px; 
                         text-decoration: none; border-radius: 4px; display: inline-block;">
-                Open in Browser
+                Join Circle
               </a>
             </div>
             <p style="color: #666; font-size: 14px;">
@@ -369,7 +364,7 @@ If you didn't request this magic link, please ignore this email.
             </p>
             <p style="color: #999; font-size: 12px; margin-top: 30px;">
               Link not working? Copy and paste this URL into your browser:<br>
-              ${webLink}
+              ${joinUrl}
             </p>
           </div>
         </body>
@@ -390,19 +385,14 @@ If you didn't request this magic link, please ignore this email.
             <p><strong>${inviterName}</strong> has invited you to join the circle <strong>"${circleName}"</strong> on Togetherly.</p>
             <p>You'll need to create a Togetherly account first. Click the button below to get started:</p>
             <div style="margin: 30px 0;">
-              <a href="${deepLink}" 
+              <a href="${joinUrl}" 
                  style="background-color: #4a90e2; color: white; padding: 12px 24px; 
-                        text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">
-                Sign Up & Join
-              </a>
-              <a href="${webLink}" 
-                 style="background-color: #6c757d; color: white; padding: 12px 24px; 
                         text-decoration: none; border-radius: 4px; display: inline-block;">
-                Open in Browser
+                Sign Up & Join
               </a>
             </div>
             <p style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
-              <strong>Note:</strong> You'll need to sign up with this email address (${invitedEmail}) 
+              <strong>Important:</strong> You must sign up with this email address (<strong>${invitedEmail}</strong>) 
               to accept the invitation. After signing up, you'll automatically join the circle.
             </p>
             <p style="color: #666; font-size: 14px;">
@@ -411,7 +401,7 @@ If you didn't request this magic link, please ignore this email.
             </p>
             <p style="color: #999; font-size: 12px; margin-top: 30px;">
               Link not working? Copy and paste this URL into your browser:<br>
-              ${webLink}
+              ${joinUrl}
             </p>
           </div>
         </body>
@@ -426,7 +416,7 @@ You're Invited to Join ${circleName}!
 
 ${inviterName} has invited you to join the circle "${circleName}" on Togetherly.
 
-Accept invitation: ${webLink}
+Accept invitation: ${joinUrl}
 
 This invitation will expire in 7 days.
 If you didn't expect this invitation, you can safely ignore this email.
@@ -438,7 +428,7 @@ ${inviterName} has invited you to join the circle "${circleName}" on Togetherly.
 
 You'll need to create a Togetherly account first with this email address (${invitedEmail}).
 
-Get started: ${webLink}
+Get started: ${joinUrl}
 
 This invitation will expire in 7 days.
 If you didn't expect this invitation, you can safely ignore this email.

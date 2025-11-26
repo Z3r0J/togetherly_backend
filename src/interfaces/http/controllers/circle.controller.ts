@@ -242,6 +242,38 @@ export class CircleController {
   };
 
   /**
+   * GET /api/circles/invitations/:token/join
+   * Redirect to app with deep link (for email button clicks)
+   * Public endpoint - no authentication required
+   */
+  redirectToApp = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { token } = req.params;
+
+      // Validate token exists
+      const result: Result<GetInvitationDetailsResult> =
+        await this.getInvitationDetailsUseCase.execute({ token });
+
+      if (!result.ok) {
+        // Redirect to app with error
+        res.redirect(`togetherly://invite/${token}?error=invalid`);
+        return;
+      }
+
+      // Redirect to app with valid token
+      res.redirect(`togetherly://invite/${token}`);
+    } catch (error) {
+      // Fallback redirect
+      const { token } = req.params;
+      res.redirect(`togetherly://invite/${token}?error=unknown`);
+    }
+  };
+
+  /**
    * GET /api/circles/invitations/:token
    * Get invitation details (public endpoint)
    * No authentication required
