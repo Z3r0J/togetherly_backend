@@ -51,6 +51,24 @@ export class UserRepository implements IUserRepository {
       });
     }
   }
+
+  async existsByEmail(email: string): Promise<Result<boolean>> {
+    try {
+      const user = await this.repository.findOne({
+        where: { email },
+        select: ["id"],
+      });
+      return Result.ok(user !== null);
+    } catch (error: any) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to check user existence";
+      return Result.fail(message, 500, ErrorCode.DATABASE_ERROR, {
+        originalError: error.message,
+      });
+    }
+  }
   async update(
     id: string,
     updates: Partial<User>

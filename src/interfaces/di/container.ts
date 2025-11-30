@@ -317,6 +317,9 @@ export class DIContainer {
     const getCircleDetailUseCase = new GetCircleDetailUseCase({
       circleRepo: this.circleRepository,
       circleMemberRepo: this.circleMemberRepository,
+      eventRepo: this.eventRepository,
+      eventRsvpRepo: this.eventRsvpRepository,
+      eventTimeRepo: this.eventTimeRepository,
     });
 
     const sendCircleInvitationUseCase = new SendCircleInvitationUseCase({
@@ -333,6 +336,7 @@ export class DIContainer {
     const getInvitationDetailsUseCase = new GetInvitationDetailsUseCase({
       invitationRepo: this.circleInvitationRepository,
       circleMemberRepo: this.circleMemberRepository,
+      userRepo: this.userRepository,
     });
 
     const acceptCircleInvitationUseCase = new AcceptCircleInvitationUseCase({

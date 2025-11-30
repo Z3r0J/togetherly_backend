@@ -13,7 +13,10 @@ type Deps = {
     verify(password: string, hash: string): Promise<boolean>;
   };
   tokens: {
-    issue(userId: string): Promise<{
+    issue(
+      userId: string,
+      additionalClaims?: Record<string, unknown>
+    ): Promise<{
       accessToken: string;
       refreshToken: string;
     }>;
@@ -91,7 +94,9 @@ export class LoginWithPasswordUseCase {
     }
 
     // Issue tokens
-    const tokensResult = await tokens.issue(user.id!);
+    const tokensResult = await tokens.issue(user.id!, {
+      email: user.email,
+    });
     if (!tokensResult) {
       return Result.fail(
         "Failed to issue tokens",

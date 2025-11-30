@@ -147,8 +147,8 @@ export class ListUnifiedCalendarUseCase {
         const eventsResult = await this.deps.eventRepo.findByCircleId(circleId);
         if (eventsResult.ok && eventsResult.data) {
           const filteredEvents = eventsResult.data.filter((e) => {
-            // Only include finalized events with start/end times
-            if (e.status !== "finalized" || !e.startsAt || !e.endsAt) {
+            // Need a visible start/end (could be from poll placeholder)
+            if (!e.startsAt || !e.endsAt) {
               return false;
             }
 

@@ -75,6 +75,18 @@ export class CreateEventUseCase {
       }
     }
 
+    // If time options provided, use earliest option as placeholder start/end for visibility
+    let pollStart: Date | undefined;
+    let pollEnd: Date | undefined;
+    if (input.timeOptions && input.timeOptions.length > 0) {
+      const sorted = [...input.timeOptions].sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+      pollStart = new Date(sorted[0].startTime);
+      pollEnd = new Date(sorted[0].endTime);
+    }
+
     // Create event entity
     const event: Event = {
       id: randomUUID(),
@@ -84,8 +96,10 @@ export class CreateEventUseCase {
       notes: input.notes,
       location: input.location,
       userId,
-      startsAt: input.startsAt ? new Date(input.startsAt) : undefined,
-      endsAt: input.endsAt ? new Date(input.endsAt) : undefined,
+      startsAt: input.startsAt
+        ? new Date(input.startsAt)
+        : pollStart,
+      endsAt: input.endsAt ? new Date(input.endsAt) : pollEnd,
       allDay: input.allDay,
       color: input.color,
       reminderMinutes: input.reminderMinutes,

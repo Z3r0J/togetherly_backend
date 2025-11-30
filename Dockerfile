@@ -30,6 +30,9 @@ RUN npm ci --omit=dev
 # Copy built files from builder
 COPY --from=builder /app/build ./build
 
+# Copy Firebase service account so runtime can initialize FCM when path is provided
+COPY src/config/firebase-service-account.json ./src/config/firebase-service-account.json
+
 # Expose port
 EXPOSE 3000
 

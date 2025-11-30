@@ -249,7 +249,7 @@ export class CircleController {
   redirectToApp = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
   ): Promise<void> => {
     try {
       const { token } = req.params;
@@ -306,7 +306,7 @@ export class CircleController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      if (!req.user || !req.user.userId || !req.user.email) {
+      if (!req.user || !req.user.userId) {
         res.status(401).json({
           success: false,
           errorCode: ErrorCode.UNAUTHORIZED,

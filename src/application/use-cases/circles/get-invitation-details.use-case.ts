@@ -2,6 +2,7 @@ import {
   ICircleInvitationRepository,
   ICircleMemberRepository,
 } from "@domain/ports/circle.repository.js";
+import { IUserRepository } from "@domain/ports/account.repository.js";
 import { Result } from "@shared/types/index.js";
 import { ErrorCode } from "@shared/errors/index.js";
 
@@ -20,11 +21,13 @@ export type GetInvitationDetailsResult = {
   status: string;
   memberCount: number;
   isExpired: boolean;
+  isRegistered: boolean;
 };
 
 export type GetInvitationDetailsDependencies = {
   invitationRepo: ICircleInvitationRepository;
   circleMemberRepo: ICircleMemberRepository;
+  userRepo: IUserRepository;
 };
 
 /**
@@ -74,6 +77,14 @@ export class GetInvitationDetailsUseCase {
     );
     const memberCount = membersResult.ok ? membersResult.data!.length : 0;
 
+    // Check if the invited email is already registered
+    const isRegisteredResult = await this.deps.userRepo.existsByEmail(
+      invitation.invitedEmail
+    );
+    const isRegistered = isRegisteredResult.ok
+      ? isRegisteredResult.data!
+      : false;
+
     const result: GetInvitationDetailsResult = {
       invitationId: invitation.id!,
       circleName: invitation.circle?.name || "Circle",
@@ -85,6 +96,7 @@ export class GetInvitationDetailsUseCase {
       status: isExpired ? "expired" : invitation.status,
       memberCount,
       isExpired,
+      isRegistered,
     };
 
     return Result.ok(result, 200);

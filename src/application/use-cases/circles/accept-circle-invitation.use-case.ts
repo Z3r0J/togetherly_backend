@@ -17,7 +17,7 @@ import { ErrorCode } from "@shared/errors/index.js";
 export type AcceptCircleInvitationInput = {
   token: string;
   userId: string;
-  userEmail: string;
+  userEmail?: string;
 };
 
 export type AcceptCircleInvitationResult = {
@@ -46,7 +46,7 @@ export class AcceptCircleInvitationUseCase {
   async execute(
     input: AcceptCircleInvitationInput
   ): Promise<Result<AcceptCircleInvitationResult>> {
-    const { token, userId, userEmail } = input;
+    const { token, userId } = input;
 
     // Find invitation by token
     const invitationResult = await this.deps.invitationRepo.findByToken(token);
@@ -95,6 +95,31 @@ export class AcceptCircleInvitationUseCase {
         400,
         ErrorCode.INVITATION_ALREADY_DECLINED
       );
+    }
+
+    // Resolve user email - prefer token claim, fallback to DB lookup
+    let userEmail = input.userEmail;
+
+    if (!userEmail) {
+      const userResult = await this.deps.userRepo.findById(userId);
+
+      if (!userResult.ok) {
+        return Result.fail(
+          userResult.error,
+          userResult.status,
+          userResult.errorCode || ErrorCode.DATABASE_ERROR
+        );
+      }
+
+      if (!userResult.data || !userResult.data.email) {
+        return Result.fail(
+          "User not found",
+          404,
+          ErrorCode.USER_NOT_FOUND
+        );
+      }
+
+      userEmail = userResult.data.email;
     }
 
     // Verify email matches

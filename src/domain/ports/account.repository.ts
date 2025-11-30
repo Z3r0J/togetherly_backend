@@ -6,6 +6,7 @@ export interface IUserRepository {
   create(user: User): Promise<Result<User>>;
   findById(id: string): Promise<Result<User | null>>;
   findByEmail(email: string): Promise<Result<User | null>>;
+  existsByEmail(email: string): Promise<Result<boolean>>;
   update(id: string, updates: Partial<User>): Promise<Result<User | null>>;
   softDelete(id: string): Promise<Result<void>>;
 }
