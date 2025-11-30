@@ -12,7 +12,8 @@ export type OutboxEventType =
   | "email.invitation"
   | "email.magic_link"
   | "email.verification"
-  | "rsvp.auto_create";
+  | "rsvp.auto_create"
+  | "event.process_conflicts";
 
 export type OutboxEventStatus =
   | "pending"

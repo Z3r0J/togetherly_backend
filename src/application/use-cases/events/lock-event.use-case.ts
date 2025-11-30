@@ -3,6 +3,9 @@ import {
   IEventTimeRepository,
 } from "@domain/ports/event.repository.js";
 import { ICircleMemberRepository } from "@domain/ports/circle.repository.js";
+import { IOutboxRepository } from "@domain/ports/notification.repository.js";
+// Notification templates not required here; conflict processing happens in background
+import { createOutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
 import { LockEventInput } from "@app/schemas/events/event.schema.js";
 import { Result } from "@shared/types/Result.js";
 import { Event } from "@domain/entities/events/event.entity.js";
@@ -16,7 +19,8 @@ export class LockEventUseCase {
   constructor(
     private readonly eventRepository: IEventRepository,
     private readonly eventTimeRepository: IEventTimeRepository,
-    private readonly circleMemberRepository: ICircleMemberRepository
+    private readonly circleMemberRepository: ICircleMemberRepository,
+    private readonly outboxRepository: IOutboxRepository
   ) {}
 
   async execute(
@@ -85,7 +89,7 @@ export class LockEventUseCase {
 
     const selectedTime = selectedTimeResult.data;
 
-    if (!selectedTime || selectedTime.eventId !== eventId) {
+    if (selectedTime?.eventId !== eventId) {
       return Result.fail(
         "Invalid time option for this event",
         400,
@@ -103,6 +107,22 @@ export class LockEventUseCase {
 
     if (!updatedEventResult.ok) {
       return updatedEventResult;
+    }
+
+    // After locking, enqueue background job to process conflicts (keeps API responsive)
+    try {
+      const outboxEvent = createOutboxEvent({
+        aggregateType: "event",
+        aggregateId: eventId,
+        eventType: "event.process_conflicts",
+        maxRetries: 5,
+        payload: { eventId, circleId: event.circleId },
+      });
+
+      await this.outboxRepository.create(outboxEvent);
+    } catch (err) {
+      // do not block locking on outbox failure
+      console.error("Failed to enqueue conflict processing job:", err);
     }
 
     return Result.ok(updatedEventResult.data);

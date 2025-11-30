@@ -4,13 +4,12 @@ import { EventTime } from "@domain/entities/events/event-time.entity.js";
 import {
   IEventRepository,
   IEventTimeRepository,
-  IEventRsvpRepository,
 } from "@domain/ports/event.repository.js";
 import {
   ICircleMemberRepository,
   ICircleRepository,
 } from "@domain/ports/circle.repository.js";
-import { IPersonalEventRepository } from "@domain/ports/calendar.repository.js";
+// personal events handled in background via outbox
 import { IUserRepository } from "@domain/ports/account.repository.js";
 import {
   INotificationRepository,
@@ -18,7 +17,6 @@ import {
 } from "@domain/ports/notification.repository.js";
 import { NotificationTemplateService } from "@app/services/notification-template.service.js";
 import { createOutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
-import { EventRsvp } from "@domain/entities/events/event-rsvps.entity.js";
 import { CreateEventInput } from "@app/schemas/events/event.schema.js";
 import { Result } from "@shared/types/Result.js";
 import { ErrorCode } from "@shared/errors/index.js";
@@ -33,8 +31,6 @@ export class CreateEventUseCase {
     private readonly eventTimeRepository: IEventTimeRepository,
     private readonly circleMemberRepository: ICircleMemberRepository,
     private readonly circleRepository: ICircleRepository,
-    private readonly eventRsvpRepository: IEventRsvpRepository,
-    private readonly personalEventRepository: IPersonalEventRepository,
     private readonly userRepository: IUserRepository,
     private readonly notificationRepository: INotificationRepository,
     private readonly outboxRepository: IOutboxRepository,
@@ -144,13 +140,21 @@ export class CreateEventUseCase {
         );
       }
     } else if (savedEvent.startsAt && savedEvent.endsAt) {
-      // Event has fixed time, check for conflicts and auto-RSVP
-      await this.handleConflictBasedRsvp(
-        savedEvent.id!,
-        input.circleId,
-        savedEvent.startsAt,
-        savedEvent.endsAt
-      );
+      // Event has fixed time: enqueue background job to process conflicts (keeps API fast)
+      try {
+        const outboxEvent = createOutboxEvent({
+          aggregateType: "event",
+          aggregateId: savedEvent.id!,
+          eventType: "event.process_conflicts",
+          maxRetries: 5,
+          payload: { eventId: savedEvent.id!, circleId: input.circleId },
+        });
+
+        await this.outboxRepository.create(outboxEvent);
+      } catch (err) {
+        // don't block event creation on outbox failure
+        console.error("Failed to enqueue conflict processing job:", err);
+      }
 
       // Notify circle members about the new event
       await this.notifyCircleMembers(savedEvent);
@@ -241,96 +245,5 @@ export class CreateEventUseCase {
    * Check all circle members for personal calendar conflicts
    * and auto-RSVP them as "not going" if conflicts exist
    */
-  private async handleConflictBasedRsvp(
-    eventId: string,
-    circleId: string,
-    startTime: Date,
-    endTime: Date
-  ): Promise<void> {
-    // Get all circle members
-    const membersResult = await this.circleMemberRepository.listCircleMembers(
-      circleId
-    );
-
-    if (!membersResult.ok || !membersResult.data) {
-      return; // Silently fail, don't block event creation
-    }
-
-    const members = membersResult.data;
-
-    // Get event and circle for notifications
-    const eventResult = await this.eventRepository.findById(eventId);
-    const circleResult = await this.circleRepository.findById(circleId);
-
-    if (
-      !eventResult.ok ||
-      !eventResult.data ||
-      !circleResult.ok ||
-      !circleResult.data
-    ) {
-      return; // Silently fail
-    }
-
-    const event = eventResult.data;
-
-    // Check each member for conflicts
-    for (const member of members) {
-      const conflictResult = await this.personalEventRepository.checkOverlap(
-        member.userId,
-        startTime,
-        endTime
-      );
-
-      if (
-        conflictResult.ok &&
-        conflictResult.data &&
-        conflictResult.data.length > 0
-      ) {
-        // Member has conflicts, auto-RSVP as "not going"
-        const rsvp: EventRsvp = {
-          eventId,
-          userId: member.userId,
-          status: "not going",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        await this.eventRsvpRepository.upsert(rsvp);
-
-        // Send conflict detection notification
-        try {
-          const conflictingEvent = conflictResult.data[0];
-          const notification =
-            this.notificationTemplateService.createConflictDetection(
-              member.userId,
-              { id: event.id!, title: event.title },
-              { id: conflictingEvent.id!, title: conflictingEvent.title }
-            );
-
-          const notificationResult = await this.notificationRepository.create(
-            notification
-          );
-
-          if (notificationResult.ok) {
-            // Create outbox event for immediate push
-            const pushEvent = createOutboxEvent({
-              aggregateType: "event",
-              aggregateId: eventId,
-              eventType: "notification.push",
-              maxRetries: 3,
-              payload: {
-                notificationId: notificationResult.data.id!,
-                userId: member.userId,
-              },
-            });
-
-            await this.outboxRepository.create(pushEvent);
-          }
-        } catch (error) {
-          // Silently fail notification, don't block RSVP
-          console.error("Error sending conflict notification:", error);
-        }
-      }
-    }
-  }
+  // Conflict processing is handled asynchronously by the outbox processor
 }

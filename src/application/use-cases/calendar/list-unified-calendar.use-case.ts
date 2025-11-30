@@ -196,12 +196,20 @@ export class ListUnifiedCalendarUseCase {
       }
 
       // 6. Detect conflicts and build unified events
+      // For conflict detection from the personal-events perspective we
+      // should ignore circle events that the user explicitly marked as
+      // "not going" so those do not appear as conflicts in the user's
+      // personal timeline.
+      const effectiveCircleEventsForConflicts = circleEvents.filter((ce) => {
+        const rsvp = rsvpMap.get(ce.id!);
+        return !(rsvp && rsvp.status === "not going");
+      });
       const unifiedPersonalEvents: UnifiedPersonalEvent[] = personalEvents.map(
         (pe) => {
           // Skip conflict detection for cancelled personal events
           const conflicts = pe.cancelled
             ? []
-            : this.findCircleConflicts(pe, circleEvents);
+            : this.findCircleConflicts(pe, effectiveCircleEventsForConflicts);
           return {
             id: pe.id!,
             type: "personal" as const,
@@ -222,10 +230,13 @@ export class ListUnifiedCalendarUseCase {
       const unifiedCircleEvents: UnifiedCircleEvent[] = circleEvents.map(
         (ce) => {
           const rsvp = rsvpMap.get(ce.id!);
-          const personalConflicts = this.findPersonalConflicts(
-            ce,
-            personalEvents
-          );
+          // If the user has RSVP'd "not going" for this circle event,
+          // treat it as non-conflicting for them (do not consider their
+          // personal events as conflicts for this circle event)
+          const personalConflicts =
+            rsvp && rsvp.status === "not going"
+              ? []
+              : this.findPersonalConflicts(ce, personalEvents);
           const circleConflicts = this.findOtherCircleConflicts(
             ce,
             circleEvents

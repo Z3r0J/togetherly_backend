@@ -4,6 +4,7 @@ import { INotificationService } from "@domain/ports/notification.repository.js";
 import { IMailerService } from "@domain/ports/mailer.port.js";
 import { ILogger } from "@domain/ports/logger.port.js";
 import { OutboxEvent } from "@domain/entities/notifications/outbox-event.entity.js";
+import { ConflictProcessorService } from "./conflict-processor.service.js";
 
 export type OutboxProcessorConfig = {
   pollingIntervalMs: number; // How often to check for pending events (default 5000ms)
@@ -22,16 +23,17 @@ export class OutboxProcessorService {
   private lastNoEventsLog: number | null = null;
 
   constructor(
-    private outboxRepository: IOutboxRepository,
-    private notificationRepository: INotificationRepository,
-    private notificationService: INotificationService,
-    private mailerService: IMailerService,
-    private logger: ILogger,
-    private config: OutboxProcessorConfig = {
+    private readonly outboxRepository: IOutboxRepository,
+    private readonly notificationRepository: INotificationRepository,
+    private readonly notificationService: INotificationService,
+    private readonly mailerService: IMailerService,
+    private readonly logger: ILogger,
+    private readonly config: OutboxProcessorConfig = {
       pollingIntervalMs: 5000,
       maxRetries: 3,
       batchSize: 10,
-    }
+    },
+    private readonly conflictProcessor?: ConflictProcessorService
   ) {}
 
   /**
@@ -172,6 +174,20 @@ export class OutboxProcessorService {
         case "rsvp.auto_create":
           // These event types are handled by other processors
           this.logger.info(`Skipping event type ${event.eventType}`);
+          break;
+
+        case "event.process_conflicts":
+          if (this.conflictProcessor) {
+            await this.conflictProcessor.processEvent(event);
+          } else {
+            this.logger.warn(
+              "No conflict processor registered; skipping event.process_conflicts"
+            );
+            await this.outboxRepository.markFailed(
+              event.id,
+              "No conflict processor available"
+            );
+          }
           break;
 
         default:

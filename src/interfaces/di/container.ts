@@ -97,6 +97,7 @@ import {
   SystemClock,
   FcmNotificationService,
   OutboxProcessorService,
+  ConflictProcessorService,
   type JwtConfig,
   type MailerConfig,
   type FcmConfig,
@@ -235,13 +236,28 @@ export class DIContainer {
       maxRetries: 3,
       batchSize: 10,
     };
+
+    // Conflict processor runs heavy conflict checks in background
+    const conflictProcessor = new ConflictProcessorService(
+      this.eventRepository,
+      this.eventRsvpRepository,
+      this.personalEventRepository,
+      this.circleRepository,
+      this.circleMemberRepository,
+      this.notificationRepository,
+      this.outboxRepository,
+      this.notificationTemplateService,
+      logger
+    );
+
     this.outboxProcessorService = new OutboxProcessorService(
       this.outboxRepository,
       this.notificationRepository,
       this.notificationService,
       this.mailerService,
       logger,
-      outboxConfig
+      outboxConfig,
+      conflictProcessor
     );
 
     // Account Use Cases
@@ -371,8 +387,6 @@ export class DIContainer {
       this.eventTimeRepository,
       this.circleMemberRepository,
       this.circleRepository,
-      this.eventRsvpRepository,
-      this.personalEventRepository,
       this.userRepository,
       this.notificationRepository,
       this.outboxRepository,
@@ -414,7 +428,8 @@ export class DIContainer {
     const lockEventUseCase = new LockEventUseCase(
       this.eventRepository,
       this.eventTimeRepository,
-      this.circleMemberRepository
+      this.circleMemberRepository,
+      this.outboxRepository
     );
 
     const finalizeEventUseCase = new FinalizeEventUseCase(
@@ -422,8 +437,6 @@ export class DIContainer {
       this.eventTimeRepository,
       this.circleMemberRepository,
       this.circleRepository,
-      this.eventRsvpRepository,
-      this.personalEventRepository,
       this.notificationRepository,
       this.outboxRepository,
       this.notificationTemplateService

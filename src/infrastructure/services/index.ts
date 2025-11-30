@@ -4,3 +4,4 @@ export * from "./mailer.service.js";
 export * from "./clock.service.js";
 export * from "./fcm-notification.service.js";
 export * from "./outbox-processor.service.js";
+export * from "./conflict-processor.service.js";
