@@ -142,18 +142,36 @@ export class CircleRepository implements ICircleRepository {
   ): Promise<Result<Array<Circle & { memberCount?: number; role?: string }>>> {
     try {
       // Query to get circles where user is owner or member
+      // Use two joins: `member` for counting all (non-deleted) members,
+      // and `my_member` to check if the current user is a member without
+      // limiting the member join used for aggregation.
       const circles = await this.repository
         .createQueryBuilder("circle")
-        .leftJoin("circle_members", "member", "member.circle_id = circle.id")
+        // join used for counting all active members
+        .leftJoin(
+          "circle_members",
+          "member",
+          "member.circle_id = circle.id AND member.isDeleted = :isDeletedMember",
+          { isDeletedMember: false }
+        )
+        // join used to check whether the current user is a member
+        .leftJoin(
+          "circle_members",
+          "my_member",
+          "my_member.circle_id = circle.id AND my_member.user_id = :userId AND my_member.isDeleted = :isDeletedMember",
+          { userId, isDeletedMember: false }
+        )
         .where("circle.isDeleted = :isDeleted", { isDeleted: false })
         .andWhere(
-          "(circle.owner_id = :userId OR (member.user_id = :userId AND member.isDeleted = :isDeleted))",
-          { userId, isDeleted: false }
+          "(circle.owner_id = :userId OR my_member.user_id = :userId)",
+          {
+            userId,
+          }
         )
         .select([
           "circle.*",
           "COUNT(DISTINCT member.id) as memberCount",
-          "MAX(CASE WHEN circle.owner_id = :userId THEN 'owner' WHEN member.user_id = :userId THEN member.role END) as role",
+          "MAX(CASE WHEN circle.owner_id = :userId THEN 'owner' WHEN my_member.user_id = :userId THEN my_member.role END) as role",
         ])
         .groupBy("circle.id")
         .getRawMany();

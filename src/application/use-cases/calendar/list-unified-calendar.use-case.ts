@@ -45,6 +45,7 @@ export interface UnifiedPersonalEvent {
   color?: string;
   notes?: string;
   reminderMinutes?: number;
+  cancelled?: boolean;
   conflictsWith: UnifiedEventConflict[];
 }
 
@@ -197,7 +198,10 @@ export class ListUnifiedCalendarUseCase {
       // 6. Detect conflicts and build unified events
       const unifiedPersonalEvents: UnifiedPersonalEvent[] = personalEvents.map(
         (pe) => {
-          const conflicts = this.findCircleConflicts(pe, circleEvents);
+          // Skip conflict detection for cancelled personal events
+          const conflicts = pe.cancelled
+            ? []
+            : this.findCircleConflicts(pe, circleEvents);
           return {
             id: pe.id!,
             type: "personal" as const,
@@ -209,6 +213,7 @@ export class ListUnifiedCalendarUseCase {
             color: pe.color,
             notes: pe.notes,
             reminderMinutes: pe.reminderMinutes,
+            cancelled: pe.cancelled || false,
             conflictsWith: conflicts,
           };
         }

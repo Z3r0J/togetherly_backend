@@ -96,21 +96,27 @@ export class EventController {
       const result = await this.getEventDetailUseCase.execute(userId, eventId);
 
       if (!result.ok) {
-        res.status(404).json({
-          ok: false,
-          error: result.error,
+        res.status(result.status || 404).json({
+          success: false,
+          errorCode: result.errorCode || ErrorCode.EVENT_NOT_FOUND,
+          message: result.error || "Failed to load event detail",
+          details: result.details,
+          timestamp: new Date().toISOString(),
         });
         return;
       }
 
       res.status(200).json({
-        ok: true,
+        success: true,
         data: result.data,
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       res.status(500).json({
-        ok: false,
-        error: "Internal server error",
+        success: false,
+        errorCode: ErrorCode.INTERNAL_SERVER_ERROR,
+        message: "Internal server error",
+        timestamp: new Date().toISOString(),
       });
     }
   };

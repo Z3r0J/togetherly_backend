@@ -79,12 +79,12 @@ export class EventRepository implements IEventRepository {
         .where("eventTime.eventId = :eventId", { eventId: id })
         .andWhere("eventTime.isDeleted = false")
         .select([
-          "eventTime.id",
-          "eventTime.startTime",
-          "eventTime.endTime",
+          "eventTime.id as id",
+          "eventTime.startTime as startTime",
+          "eventTime.endTime as endTime",
           "COUNT(vote.id) as voteCount",
         ])
-        .groupBy("eventTime.id")
+        .groupBy("eventTime.id, eventTime.startTime, eventTime.endTime")
         .getRawMany();
 
       // Get RSVPs with user info
@@ -97,7 +97,7 @@ export class EventRepository implements IEventRepository {
           "rsvp.id",
           "rsvp.userId",
           "rsvp.status",
-          "user.username",
+          "user.name",
           "user.email",
         ])
         .getRawMany();
@@ -105,16 +105,16 @@ export class EventRepository implements IEventRepository {
       const eventWithDetails = {
         ...event,
         eventTimes: eventTimes.map((et) => ({
-          id: et.eventTime_id,
-          startTime: et.eventTime_startTime,
-          endTime: et.eventTime_endTime,
+          id: et.id,
+          startTime: et.startTime,
+          endTime: et.endTime,
           voteCount: parseInt(et.voteCount) || 0,
         })),
         rsvps: rsvps.map((r) => ({
           id: r.rsvp_id,
           userId: r.rsvp_userId,
           status: r.rsvp_status,
-          username: r.user_username,
+          username: r.user_name,
           email: r.user_email,
         })),
       };

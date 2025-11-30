@@ -19,6 +19,9 @@ export const createCalendarRoutes = (
   // Get unified calendar (personal + circle events)
   router.get("/unified", controller.listUnifiedCalendar);
 
+  // Resolve event conflict
+  router.post("/conflicts/resolve", controller.resolveEventConflict);
+
   // Create personal event
   router.post("/events", controller.createPersonalEvent);
 

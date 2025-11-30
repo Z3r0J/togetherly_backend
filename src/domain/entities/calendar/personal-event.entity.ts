@@ -23,6 +23,8 @@ export interface PersonalEvent {
   notes?: string; // Previously description
   color?: string;
   reminderMinutes?: number; // Minutes before event (e.g., 15, 30, 60)
+  cancelled?: boolean;
+  cancelledAt?: Date | null;
   isDeleted?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -47,5 +49,7 @@ export const createPersonalEvent = (
     notes: props.notes,
     color: props.color,
     reminderMinutes: props.reminderMinutes,
+    cancelled: props.cancelled || false,
+    cancelledAt: props.cancelledAt || null,
   };
 };

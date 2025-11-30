@@ -96,9 +96,7 @@ export class CreateEventUseCase {
       notes: input.notes,
       location: input.location,
       userId,
-      startsAt: input.startsAt
-        ? new Date(input.startsAt)
-        : pollStart,
+      startsAt: input.startsAt ? new Date(input.startsAt) : pollStart,
       endsAt: input.endsAt ? new Date(input.endsAt) : pollEnd,
       allDay: input.allDay,
       color: input.color,
@@ -193,17 +191,15 @@ export class CreateEventUseCase {
       const circle = circleResult.data;
       const inviterName = inviterResult.data.name || "Someone";
 
-      // Create notifications for all members except the creator
-      const notifications = members
-        .filter((member) => member.userId !== event.userId)
-        .map((member) =>
-          this.notificationTemplateService.createEventInvitation(
-            member.userId,
-            { name: inviterName },
-            event,
-            circle
-          )
-        );
+      // Create notifications for all members (including the creator)
+      const notifications = members.map((member) =>
+        this.notificationTemplateService.createEventInvitation(
+          member.userId,
+          { name: inviterName },
+          event,
+          circle
+        )
+      );
 
       if (notifications.length === 0) {
         return; // No one to notify

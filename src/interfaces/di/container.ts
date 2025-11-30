@@ -45,6 +45,7 @@ import {
   GetPersonalEventDetailUseCase,
   ListUnifiedCalendarUseCase,
 } from "@app/use-cases/calendar/index.js";
+import { ResolveEventConflictUseCase } from "@app/use-cases/calendar/resolve-event-conflict.use-case.js";
 import {
   ICredentialRepository,
   IMagicLinkRepository,
@@ -491,13 +492,19 @@ export class DIContainer {
       eventRsvpRepo: this.eventRsvpRepository,
     });
 
+    const resolveEventConflictUseCase = new ResolveEventConflictUseCase({
+      personalEventRepo: this.personalEventRepository,
+      eventRsvpRepo: this.eventRsvpRepository,
+    });
+
     this.calendarController = new CalendarController(
       createPersonalEventUseCase,
       updatePersonalEventUseCase,
       deletePersonalEventUseCase,
       listPersonalEventsUseCase,
       getPersonalEventDetailUseCase,
-      listUnifiedCalendarUseCase
+      listUnifiedCalendarUseCase,
+      resolveEventConflictUseCase
     );
 
     // Notification Controller

@@ -9,6 +9,7 @@ import {
   GetPersonalEventDetailUseCase,
   ListUnifiedCalendarUseCase,
 } from "@app/use-cases/calendar/index.js";
+import { ResolveEventConflictUseCase } from "@app/use-cases/calendar/resolve-event-conflict.use-case.js";
 import {
   createPersonalEventSchema,
   updatePersonalEventSchema,
@@ -28,8 +29,65 @@ export class CalendarController {
     private deletePersonalEventUseCase: DeletePersonalEventUseCase,
     private listPersonalEventsUseCase: ListPersonalEventsUseCase,
     private getPersonalEventDetailUseCase: GetPersonalEventDetailUseCase,
-    private listUnifiedCalendarUseCase: ListUnifiedCalendarUseCase
+    private listUnifiedCalendarUseCase: ListUnifiedCalendarUseCase,
+    private resolveEventConflictUseCase: ResolveEventConflictUseCase
   ) {}
+  /**
+   * POST /api/calendar/conflicts/resolve
+   * Resolve a schedule conflict (cancel personal, change RSVP, or keep both)
+   */
+  resolveEventConflict = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({
+          success: false,
+          errorCode: ErrorCode.UNAUTHORIZED,
+          message: "Unauthorized",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const { eventId, eventType, action } = req.body;
+      if (!eventId || !eventType || !action) {
+        res.status(400).json({
+          success: false,
+          errorCode: ErrorCode.VALIDATION_FAILED,
+          message: "Missing required fields: eventId, eventType, action",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const result = await this.resolveEventConflictUseCase.execute({
+        userId: req.user.userId,
+        eventId,
+        eventType,
+        action,
+      });
+
+      if (result.ok) {
+        res.status(200).json({
+          success: true,
+          message: result.data,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        res.status(result.status || 400).json({
+          success: false,
+          errorCode: result.errorCode,
+          message: result.error,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
 
   /**
    * POST /api/calendar/events
