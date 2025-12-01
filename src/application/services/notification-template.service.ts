@@ -203,13 +203,14 @@ export class NotificationTemplateService {
     circle: Circle
   ): Notification {
     const actionButtons: NotificationAction[] = [
-      { label: "Accept", action: "accept", style: "success" },
-      { label: "Decline", action: "decline", style: "danger" },
+      { label: "Accept", action: "accept_invitation", style: "success" },
+      { label: "Decline", action: "decline_invitation", style: "danger" },
     ];
 
     const metadata: NotificationMetadata = {
       circleId: circle.id!,
       inviterId: inviter.name,
+      shareToken: circle.shareToken || undefined,
     };
 
     return {

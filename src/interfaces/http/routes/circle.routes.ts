@@ -23,6 +23,9 @@ export const createCircleRoutes = (
   // Get circle details by share token (public preview)
   router.get("/share/:shareToken", controller.getCircleByShareToken);
 
+  // Redirect to app for share link (deep linking)
+  router.get("/share/:shareToken/join", controller.redirectToAppWithShareToken);
+
   // All other circle routes require authentication
   router.use(jwtAuth);
 

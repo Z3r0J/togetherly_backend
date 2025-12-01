@@ -43,6 +43,7 @@ export interface ICircleMemberRepository {
 export interface ICircleInvitationRepository {
   create(invitation: CircleInvitation): Promise<Result<CircleInvitation>>;
   findByToken(token: string): Promise<Result<CircleInvitation | null>>;
+  findPendingByEmail(email: string): Promise<Result<CircleInvitation[]>>;
   findByCircleAndEmail(
     circleId: string,
     email: string

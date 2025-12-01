@@ -274,6 +274,38 @@ export class CircleController {
   };
 
   /**
+   * GET /api/circles/share/:shareToken/join
+   * Redirect to app for joining via share link (deep linking)
+   * No authentication required
+   */
+  redirectToAppWithShareToken = async (
+    req: Request,
+    res: Response,
+    _next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { shareToken } = req.params;
+
+      // Validate shareToken exists
+      const result: Result<GetCircleByShareTokenResult> =
+        await this.getCircleByShareTokenUseCase.execute({ shareToken });
+
+      if (!result.ok) {
+        // Redirect to app with error
+        res.redirect(`togetherly://circles/share/${shareToken}?error=invalid`);
+        return;
+      }
+
+      // Redirect to app with valid shareToken
+      res.redirect(`togetherly://circles/share/${shareToken}`);
+    } catch (error) {
+      // Fallback redirect
+      const { shareToken } = req.params;
+      res.redirect(`togetherly://circles/share/${shareToken}?error=unknown`);
+    }
+  };
+
+  /**
    * GET /api/circles/invitations/:token
    * Get invitation details (public endpoint)
    * No authentication required

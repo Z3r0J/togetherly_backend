@@ -2,7 +2,7 @@ import { CircleInvitation } from "@domain/entities/circles/circle-invitation.ent
 import { ICircleInvitationRepository } from "@domain/ports/circle.repository.js";
 import { Result } from "@shared/types/index.js";
 import { ErrorCode, mapDatabaseError } from "@shared/errors/index.js";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, Repository, Raw } from "typeorm";
 import { CircleInvitationSchema } from "../schemas/circles/circle-invitation.schema.js";
 
 export class CircleInvitationRepository implements ICircleInvitationRepository {
@@ -69,6 +69,35 @@ export class CircleInvitationRepository implements ICircleInvitationRepository {
         error instanceof Error
           ? error.message
           : "Unknown error finding invitation";
+      const errorCode = mapDatabaseError(error);
+      return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
+        originalError: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async findPendingByEmail(
+    email: string
+  ): Promise<Result<CircleInvitation[]>> {
+    try {
+      const invitations = await this.repository.find({
+        where: {
+          invitedEmail: Raw(
+            (alias) => `LOWER(${alias}) = LOWER(:email)`,
+            { email }
+          ),
+          status: "pending",
+          isDeleted: false,
+        },
+        relations: ["circle", "inviter"],
+        order: { createdAt: "DESC" },
+      });
+      return Result.ok(invitations);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unknown error finding invitations by email";
       const errorCode = mapDatabaseError(error);
       return Result.fail(message, 500, errorCode || ErrorCode.DATABASE_ERROR, {
         originalError: error instanceof Error ? error.message : String(error),

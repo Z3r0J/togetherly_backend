@@ -6,6 +6,7 @@ export * from "./get-circle-detail.use-case.js";
 export * from "./send-circle-invitation.use-case.js";
 export * from "./get-invitation-details.use-case.js";
 export * from "./accept-circle-invitation.use-case.js";
+export * from "./claim-pending-invitations.use-case.js";
 export * from "./generate-share-link.use-case.js";
 export * from "./join-circle-via-share-link.use-case.js";
 export * from "./get-circle-by-share-token.use-case.js";
