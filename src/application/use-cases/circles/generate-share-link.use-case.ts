@@ -77,7 +77,7 @@ export class GenerateShareLinkUseCase {
     if (circle.shareToken) {
       return Result.ok({
         shareToken: circle.shareToken,
-        shareLink: `togetherly://circle/join/${circle.shareToken}`,
+        shareLink: `togetherly://circles/share/${circle.shareToken}`,
       });
     }
 
@@ -99,7 +99,7 @@ export class GenerateShareLinkUseCase {
 
     return Result.ok({
       shareToken,
-      shareLink: `togetherly://circle/join/${shareToken}`,
+      shareLink: `togetherly://circles/share/${shareToken}`,
     });
   }
 }

@@ -31,6 +31,7 @@ export type GetCircleDetailResult = {
   color?: string;
   privacy: string;
   ownerId: string;
+  shareToken?: string;
   members: CircleMemberDetail[];
   events?: CircleEventSummary[];
   userRole: string;
@@ -212,13 +213,9 @@ export class GetCircleDetailUseCase {
       // Sort events by start time (fallback to createdAt)
       events.sort((a, b) => {
         const aDate =
-          a.startsAt?.getTime() ??
-          a.eventTimes?.[0]?.startTime?.getTime() ??
-          0;
+          a.startsAt?.getTime() ?? a.eventTimes?.[0]?.startTime?.getTime() ?? 0;
         const bDate =
-          b.startsAt?.getTime() ??
-          b.eventTimes?.[0]?.startTime?.getTime() ??
-          0;
+          b.startsAt?.getTime() ?? b.eventTimes?.[0]?.startTime?.getTime() ?? 0;
         return aDate - bDate;
       });
     }
@@ -230,6 +227,7 @@ export class GetCircleDetailUseCase {
       color: circle.color,
       privacy: circle.privacy!,
       ownerId: circle.ownerId,
+      shareToken: circle.shareToken,
       members,
       events,
       userRole,
