@@ -41,12 +41,9 @@ export class ConflictProcessorService {
     const payload = event.payload as { eventId?: string; circleId?: string };
     if (!payload || !payload.eventId || !payload.circleId) {
       this.logger.error(
-        "Invalid payload for event.process_conflicts",
-        undefined,
-        {
-          eventId: event.id,
-          payload: event.payload,
-        }
+        `Invalid payload for event.process_conflicts - outboxId=${
+          event.id
+        } payload=${JSON.stringify(event.payload)}`
       );
       return;
     }

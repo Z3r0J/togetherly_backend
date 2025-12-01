@@ -202,7 +202,8 @@ export class ListUnifiedCalendarUseCase {
       // personal timeline.
       const effectiveCircleEventsForConflicts = circleEvents.filter((ce) => {
         const rsvp = rsvpMap.get(ce.id!);
-        return !(rsvp && rsvp.status === "not going");
+        const normalizedStatus = this.normalizeRsvpStatus(rsvp?.status);
+        return normalizedStatus !== "not going";
       });
       const unifiedPersonalEvents: UnifiedPersonalEvent[] = personalEvents.map(
         (pe) => {
@@ -230,18 +231,30 @@ export class ListUnifiedCalendarUseCase {
       const unifiedCircleEvents: UnifiedCircleEvent[] = circleEvents.map(
         (ce) => {
           const rsvp = rsvpMap.get(ce.id!);
+          const normalizedRsvpStatus = this.normalizeRsvpStatus(rsvp?.status);
+          const isDeclined = normalizedRsvpStatus === "not going";
           // If the user has RSVP'd "not going" for this circle event,
           // treat it as non-conflicting for them (do not consider their
           // personal events as conflicts for this circle event)
           const personalConflicts =
-            rsvp && rsvp.status === "not going"
+            isDeclined
               ? []
               : this.findPersonalConflicts(ce, personalEvents);
-          const circleConflicts = this.findOtherCircleConflicts(
-            ce,
-            circleEvents
-          );
-          const allConflicts = [...personalConflicts, ...circleConflicts];
+          // Exclude circle events the user marked as "not going" from
+          // circle-vs-circle conflict detection as well. We already
+          // computed `effectiveCircleEventsForConflicts` earlier to
+          // exclude such events for personal conflict detection — reuse
+          // it here so a circle event the user declined does not show up
+          // as a conflict for other circle events.
+          const circleConflicts = isDeclined
+            ? []
+            : this.findOtherCircleConflicts(
+                ce,
+                effectiveCircleEventsForConflicts
+              );
+          const allConflicts = isDeclined
+            ? []
+            : [...personalConflicts, ...circleConflicts];
 
           return {
             id: ce.id!,
@@ -255,7 +268,7 @@ export class ListUnifiedCalendarUseCase {
             allDay: ce.allDay || false,
             location: ce.location,
             status: ce.status || "draft",
-            rsvpStatus: rsvp?.status || null,
+            rsvpStatus: normalizedRsvpStatus,
             attendeeCount: attendeeCountMap.get(ce.id!) || 0,
             hasConflict: allConflicts.length > 0,
             conflictsWith: allConflicts,
@@ -376,6 +389,9 @@ export class ListUnifiedCalendarUseCase {
     }
 
     for (const pe of personalEvents) {
+      // Ignore cancelled personal events when computing conflicts
+      if (pe.cancelled) continue;
+
       if (
         this.hasTimeOverlap(
           circleEvent.startsAt,
@@ -454,5 +470,23 @@ export class ListUnifiedCalendarUseCase {
     const e2 = new Date(end2).getTime();
 
     return s1 < e2 && s2 < e1;
+  }
+
+  /**
+   * Normalize RSVP status values that might come in with different casing
+   * or separators (e.g. "not_going" from some clients).
+   */
+  private normalizeRsvpStatus(
+    status?: string | null
+  ): "going" | "maybe" | "not going" | null {
+    if (!status) return null;
+
+    const normalized = status.toLowerCase().replace(/_/g, " ").trim();
+
+    if (normalized === "going") return "going";
+    if (normalized === "maybe") return "maybe";
+    if (normalized === "not going") return "not going";
+
+    return null;
   }
 }

@@ -11,6 +11,7 @@ export interface ResolveEventConflictInput {
     | "cancel_personal"
     | "change_rsvp_maybe"
     | "change_rsvp_going"
+    | "change_rsvp_not_going"
     | "keep_both";
 }
 
@@ -36,25 +37,33 @@ export class ResolveEventConflictUseCase {
         }
         return Result.ok("Personal event marked as cancelled");
       }
-      if (
-        eventType === "circle" &&
-        (action === "change_rsvp_maybe" || action === "change_rsvp_going")
-      ) {
-        // Update RSVP status via upsert
-        const status = action === "change_rsvp_maybe" ? "maybe" : "going";
-        const upsertResult = await this.deps.eventRsvpRepo.upsert({
-          eventId,
-          userId,
-          status,
-        } as any);
-        if (!upsertResult.ok) {
-          return Result.fail(
-            upsertResult.error || "Failed to update RSVP",
-            upsertResult.status || 500,
-            upsertResult.errorCode
-          );
+      if (eventType === "circle") {
+        if (
+          action === "change_rsvp_maybe" ||
+          action === "change_rsvp_going" ||
+          action === "change_rsvp_not_going"
+        ) {
+          // Update RSVP status via upsert
+          const status =
+            action === "change_rsvp_maybe"
+              ? "maybe"
+              : action === "change_rsvp_going"
+              ? "going"
+              : "not going";
+          const upsertResult = await this.deps.eventRsvpRepo.upsert({
+            eventId,
+            userId,
+            status,
+          } as any);
+          if (!upsertResult.ok) {
+            return Result.fail(
+              upsertResult.error || "Failed to update RSVP",
+              upsertResult.status || 500,
+              upsertResult.errorCode
+            );
+          }
+          return Result.ok(`RSVP changed to ${status}`);
         }
-        return Result.ok(`RSVP changed to ${status}`);
       }
       if (action === "keep_both") {
         // No action, just acknowledge

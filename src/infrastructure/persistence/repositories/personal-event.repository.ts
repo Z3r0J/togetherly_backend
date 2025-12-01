@@ -165,6 +165,7 @@ export class PersonalEventRepository implements IPersonalEventRepository {
         .createQueryBuilder("event")
         .where("event.userId = :userId", { userId })
         .andWhere("event.isDeleted = :isDeleted", { isDeleted: false })
+        .andWhere("event.cancelled = :cancelled", { cancelled: false })
         .andWhere(
           "(event.startTime < :endTime AND event.endTime > :startTime)",
           { startTime, endTime }

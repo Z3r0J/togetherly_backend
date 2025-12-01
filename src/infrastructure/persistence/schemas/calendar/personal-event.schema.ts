@@ -56,6 +56,16 @@ export const PersonalEventSchema = new EntitySchema<PersonalEvent>({
       name: "reminder_minutes",
       nullable: true,
     },
+    cancelled: {
+      type: "boolean",
+      name: "cancelled",
+      default: false,
+    },
+    cancelledAt: {
+      type: "timestamp",
+      name: "cancelled_at",
+      nullable: true,
+    },
     isDeleted: {
       type: "boolean",
       name: "is_deleted",
